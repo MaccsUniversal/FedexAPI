@@ -23,8 +23,8 @@ codeunit 50100 FedexAuthorization
     begin
         if not FedexSetup.Get('FEDEXAPI') then
             Error(FedexSetupError);
-        URIPath := FedexSetup.URI; //'https://apis-sandbox.fedex.com';
-        GrantType := FormatGrantType(FedexSetup.Grant_Type); //'client_credentials';
+        URIPath := FedexSetup.URI;
+        GrantType := FormatGrantType(FedexSetup.Grant_Type);
 
         if FedexSetup.Client_id = '' then
             Error(ClientIdError);
