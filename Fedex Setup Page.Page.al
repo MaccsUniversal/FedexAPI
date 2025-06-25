@@ -92,7 +92,7 @@ page 50100 "Fedex Setup Page"
                 var
                     FedexAuth: Codeunit FedexAuthorization;
                 begin
-                    FedexAuth.RequestToken();
+                    FedexAuth.Run();
                 end;
             }
         }
