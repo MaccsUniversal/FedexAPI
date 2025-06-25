@@ -91,12 +91,8 @@ page 50100 "Fedex Setup Page"
                 trigger OnAction()
                 var
                     FedexAuth: Codeunit FedexAuthorization;
-                    ResponseMessage: HttpResponseMessage;
-                    ResponseText: Text;
                 begin
-                    ResponseMessage := FedexAuth.RequestToken();
-                    // ResponseMessage.Content.ReadAs(ResponseText);
-                    // Message(ResponseText);
+                    FedexAuth.RequestToken();
                 end;
             }
         }
