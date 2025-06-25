@@ -9,6 +9,11 @@ codeunit 50100 FedexAuthorization
         Response: HttpResponseMessage;
         FedexSetup: Record "Fedex Setup";
 
+    trigger OnRun()
+    begin
+        RequestToken();
+    end;
+
     procedure RequestToken(): HttpResponseMessage
     var
         URIPath: Text;
@@ -20,6 +25,8 @@ codeunit 50100 FedexAuthorization
         ClientIdError: Label 'Please provide a client id.';
         ClientSecretError: Label 'Please provide a client secret.';
         FedexSetupError: Label 'Complete Fedex API setup to retrive access token.';
+        IsHandled: Boolean;
+        Sent: Boolean;
     begin
         if not FedexSetup.Get('FEDEXAPI') then
             Error(FedexSetupError);
@@ -36,21 +43,29 @@ codeunit 50100 FedexAuthorization
         IsolatedStorage.Set('ClientSecret', FedexSetup.Client_Secret, DataScope::Module);
         IsolatedStorage.Get('ClientSecret', DataScope::Module, ClientSecret);
 
-        Payload := 'grant_type=' + Format(GrantType) + '&client_id=' + ClientId + '&client_secret=' + ClientSecret;
+        IsHandled := false;
+        OnBeforeSetPayload(Payload, IsHandled);
+        if not IsHandled then
+            Payload := 'grant_type=' + Format(GrantType) + '&client_id=' + ClientId + '&client_secret=' + ClientSecret;
+
         Content.WriteFrom(Payload);
         Content.GetHeaders(ContentHeaders);
         ContentHeaders.Clear();
+        OnBeforeAddContentHeaders(ContentHeaders);
         ContentHeaders.Add('Content-Type', 'application/x-www-form-urlencoded');
         HttpClient.SetBaseAddress(URIPath);
-        IsSuccessful := HttpClient.Post('/oauth/token', Content, Response);
-
+        Sent := false;
+        OnBeforeHttpClientCall(IsSuccessful, HttpClient, Response, Content, Sent);
+        if not Sent then
+            IsSuccessful := HttpClient.Post('/oauth/token', Content, Response);
+        OnAfterHttpClientCall(IsSuccessful);
         if Response.HttpStatusCode <> 200 then
             ErrorResponseMessage(Response.HttpStatusCode);
 
         Message('Succesfully completed authorization call. Access Token retreived. Status=%1', Response.ReasonPhrase);
 
         ResponseHandler(Response);
-        exit(Response);
+        exit;
     end;
 
     local procedure ResponseHandler(var Response: HttpResponseMessage)
@@ -65,8 +80,13 @@ codeunit 50100 FedexAuthorization
         TokenTypeResponse: Text;
         ExpiresInResponse: Text;
         ScopeResponse: Text;
-
+        IsHandled: Boolean;
     begin
+        IsHandled := false;
+        OnBeforeResponseHandler(Response, IsHandled);
+        if IsHandled then
+            exit;
+
         Response.Content.ReadAs(ResponseText);
         JsonObject.ReadFrom(ResponseText);
         JsonObject.Get('access_token', JsonToken1);
@@ -84,13 +104,22 @@ codeunit 50100 FedexAuthorization
         FedexSetup.Token_Expiary := CalculateExpiaryTime(ExpiresInResponse);
         JsonToken4.WriteTo(ScopeResponse);
         FedexSetup.Scope := ScopeResponse.Replace('"', '');
+
+        OnAfterResponseHandler(JsonObject);
         FedexSetup.Modify();
+
     end;
 
     local procedure FormatGrantType(GrantType: Enum "Fedex Grant Types"): Text
     var
         GrantTypeInText: Text;
+        IsHandled: Boolean;
     begin
+        IsHandled := false;
+        OnBeforeFormatGrantType(GrantType, GrantTypeInText, IsHandled);
+        if IsHandled then
+            exit(GrantTypeInText);
+
         case GrantType of
             "Fedex Grant Types"::client_credentials:
                 GrantTypeInText := 'client_credentials';
@@ -101,6 +130,7 @@ codeunit 50100 FedexAuthorization
             else
                 Error('Incorrect or no grant type provided.');
         end;
+        OnAfterFormatGrantType(GrantTypeInText);
         exit(GrantTypeInText);
     end;
 
@@ -155,11 +185,68 @@ codeunit 50100 FedexAuthorization
         TimeValue: DateTime;
         ExpiaryTimeInteger: Integer;
         Duration: Integer;
+        IsHandled: Boolean;
     begin
+        IsHandled := false;
+        OnBeforeCalculateExpiaryTime(ExpiaryTime, IsHandled, TimeValue);
+        if IsHandled then
+            exit(TimeValue);
+
         Evaluate(ExpiaryTimeInteger, ExpiaryTime);
         Duration := 1000 * 60 * (Round(ExpiaryTimeInteger / 60));
         TimeValue := CurrentDateTime + Duration;
+        OnAfterCalculateExpiaryTime(TimeValue);
         exit(TimeValue);
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeHttpClientCall(var IsSuccessful: Boolean; var HttpClient: HttpClient; var Response: HttpResponseMessage; var Content: HttpContent; var Sent: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeAddContentHeaders(var ContentHeaders: HttpHeaders)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeSetPayload(var Payload: Text; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeFormatGrantType(GrantType: Enum "Fedex Grant Types"; var GrantTypeInText: Text; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeCalculateExpiaryTime(ExpiaryTime: Text; var IsHandled: Boolean; var DateTimeRef: DateTime)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeResponsehandler(var ResponseMsg: HttpResponseMessage; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterHttpClientCall(var IsSuccessful: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterFormatGrantType(var GrantTypeIntext: Text)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterCalculateExpiaryTime(var TimeValue: DateTime)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterResponseHandler(var JsonObj: JsonObject)
+    begin
     end;
 
 }
