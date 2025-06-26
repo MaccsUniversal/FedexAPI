@@ -14,7 +14,7 @@ codeunit 50100 FedexAuthorization
         RequestToken();
     end;
 
-    procedure RequestToken(): HttpResponseMessage
+    local procedure RequestToken(): HttpResponseMessage
     var
         URIPath: Text;
         GrantType: Text;
@@ -62,7 +62,7 @@ codeunit 50100 FedexAuthorization
         if Response.HttpStatusCode <> 200 then
             ErrorResponseMessage(Response.HttpStatusCode);
 
-        Message('Succesfully completed authorization call. Access Token retreived. Status=%1', Response.ReasonPhrase);
+        Message('Succesfully completed authorization call. Access Token retreived.');
 
         ResponseHandler(Response);
         exit;
@@ -107,7 +107,6 @@ codeunit 50100 FedexAuthorization
 
         OnAfterResponseHandler(JsonObject);
         FedexSetup.Modify();
-
     end;
 
     local procedure FormatGrantType(GrantType: Enum "Fedex Grant Types"): Text
