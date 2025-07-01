@@ -71,6 +71,38 @@ table 50100 "Fedex Setup"
             ToolTip = 'Indicates the scope of authorization provided to the consumer.';
             Editable = true;
         }
+
+        field(10; PickUpType; Enum "Fedex PickUp Types")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Pick Up Type';
+            ToolTip = 'Indicates if shipment is being dropped off at a FedEx location or being picked up by FedEx or if it''s a regularly scheduled pickup for this shipment.';
+            Editable = true;
+        }
+
+        field(11; LabelStockType; Enum "Fedex Label Sizes")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Label Stock Type';
+            ToolTip = 'Label Stock Type.';
+            Editable = true;
+        }
+
+        field(12; ImageType; Enum "Fedex Image Types")
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Image Type';
+            ToolTip = 'Specifies the image type of this shipping document.';
+            Editable = true;
+        }
+
+        field(13; AccountNumber; Text[50])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Account Number';
+            ToolTip = 'Your account number.';
+            Editable = true;
+        }
     }
 
     keys

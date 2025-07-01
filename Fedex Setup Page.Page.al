@@ -45,7 +45,7 @@ page 50100 "Fedex Setup Page"
                     }
                 }
 
-                group("Acces Token")
+                group("AccessToken")
                 {
                     Caption = 'Access Token';
                     field(Access_Token; Rec.Access_Token)
@@ -76,6 +76,39 @@ page 50100 "Fedex Setup Page"
                         Enabled = false;
                     }
 
+                }
+
+                group(LabelCreation)
+                {
+                    Caption = 'Label Creation';
+
+                    field(AccountNumber; Rec.AccountNumber)
+                    {
+                        Caption = 'Account Number';
+                        ApplicationArea = All;
+                        Enabled = true;
+                    }
+
+                    field(PickUpType; Rec.PickUpType)
+                    {
+                        Caption = 'Pick Up Type';
+                        ApplicationArea = All;
+                        Enabled = true;
+                    }
+
+                    field(LabelStockType; Rec.LabelStockType)
+                    {
+                        Caption = 'Label Stock Type';
+                        ApplicationArea = All;
+                        Enabled = true;
+                    }
+
+                    field(ImageType; Rec.ImageType)
+                    {
+                        Caption = 'Image Type';
+                        ApplicationArea = All;
+                        Enabled = true;
+                    }
                 }
             }
         }
