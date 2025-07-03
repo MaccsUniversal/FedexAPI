@@ -8,6 +8,7 @@ codeunit 50100 FedexAuthorization
         HttpRequestMessage: HttpRequestMessage;
         Response: HttpResponseMessage;
         FedexSetup: Record "Fedex Setup";
+        Hide: Boolean;
 
     trigger OnRun()
     begin
@@ -62,9 +63,8 @@ codeunit 50100 FedexAuthorization
         if Response.HttpStatusCode <> 200 then
             ErrorResponseMessage(Response.HttpStatusCode);
 
-        Message('Succesfully completed authorization call. Access Token retreived.');
-
         ResponseHandler(Response);
+        ShowDialog();
         exit;
     end;
 
@@ -196,6 +196,19 @@ codeunit 50100 FedexAuthorization
         TimeValue := CurrentDateTime + Duration;
         OnAfterCalculateExpiaryTime(TimeValue);
         exit(TimeValue);
+    end;
+
+    procedure SetHide(isHidden: Boolean)
+    begin
+        Hide := isHidden;
+    end;
+
+    procedure ShowDialog()
+    begin
+        if Hide then
+            exit;
+
+        Message('Succesfully completed authorization call. Access Token retreived.');
     end;
 
     [IntegrationEvent(false, false)]
