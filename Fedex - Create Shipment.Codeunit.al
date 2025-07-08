@@ -9,8 +9,15 @@ codeunit 50102 "Fedex - Create Shipment"
         SetAuthorizationHeader(Token);
         RequestContent := SetContentHeaders(Rec);
         CallShipAPI();
-        SetTrackingNumberFromResponse(Response, Rec);
+        HandleResponse(Response, Rec);
         Message(GetResponseText(Response));
+    end;
+
+    local procedure HandleResponse(ResponseMsg: HttpResponseMessage; ShipmentHdr: Record "Sales Shipment Header")
+    begin
+        FedexCreationResponse.SetResponseData(ResponseMsg);
+        FedexCreationResponse.SetShipmentHeader(ShipmentHdr);
+        FedexCreationResponse.Run();
     end;
 
     local procedure CallShipAPI(): HttpResponseMessage
@@ -294,54 +301,6 @@ codeunit 50102 "Fedex - Create Shipment"
         exit(ResponseText);
     end;
 
-    procedure SetTrackingNumberFromResponse(HttpResponseMessage: HttpResponseMessage; SalesShipmentHeader: Record "Sales Shipment Header")
-    var
-        JsonResponse: JsonObject;
-        JsonResponseAsText: Text;
-        JsonToken: JsonToken;
-        JsonToken1: JsonToken;
-        JsonToken2: JsonToken;
-        JsonToken3: JsonToken;
-        TrackingNumber: Text;
-        RecRef: Record "Sales Shipment Header";
-        PageRef: Page "Posted Sales Shipment - Update";
-        FieldRef: FieldRef;
-        SalesOrderHeader: Record "Sales Header";
-        OrderNo: Code[20];
-    begin
-        if not HttpResponseMessage.IsSuccessStatusCode() then
-            exit;
-
-        // Parse the JSON response
-        if HttpResponseMessage.Content().ReadAs(JsonResponseAsText) then begin
-            // Adapt the below path based on your actual JSON structure
-            JsonResponse.ReadFrom(JsonResponseAsText);
-            if not JsonResponse.Get('output', JsonToken) then
-                exit;
-
-            if not JsonToken.AsObject().Get('transactionShipments', JsonToken1) then
-                exit;
-
-            if not JsonToken1.AsArray().Get(0, JsonToken2) then
-                exit;
-
-            if not JsonToken2.AsObject().Get('masterTrackingNumber', JsonToken3) then
-                exit;
-
-            TrackingNumber := JsonToken3.AsValue().AsText();
-
-            OrderNo := SalesShipmentHeader."Order No.";
-
-            SalesShipmentHeader."Package Tracking No." := TrackingNumber;
-            SalesShipmentHeader.Modify();
-
-            if SalesOrderHeader.Get(SalesOrderHeader."Document Type"::Order, OrderNo) then begin
-                SalesOrderHeader."Package Tracking No." := TrackingNumber;
-                SalesOrderHeader.Modify();
-            end;
-        end;
-    end;
-
     local procedure HandleFedexSetupError()
     var
         FieldName: Text;
@@ -406,6 +365,7 @@ codeunit 50102 "Fedex - Create Shipment"
         Body: JsonObject;
         Payload: Text;
         FedexSetup: Record "Fedex Setup";
+        FedexCreationResponse: Codeunit "Fedex - Create Rsp. Handler";
         TotalWeight: Decimal;
         SalesShipmentLine: Record "Sales Shipment Line";
 

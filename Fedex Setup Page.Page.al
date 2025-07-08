@@ -108,6 +108,24 @@ page 50100 "Fedex Setup Page"
                         Caption = 'Image Type';
                         ApplicationArea = All;
                         Enabled = true;
+
+                        trigger OnValidate()
+                        begin
+                            case Rec.ImageType of
+                                Rec.ImageType::ZPLII:
+                                    begin
+                                        Rec.LabelStockType := Rec.LabelStockType::STOCK_4X6;
+                                    end;
+                                Rec.ImageType::PDF:
+                                    begin
+                                        Rec.LabelStockType := Rec.LabelStockType::PAPER_4X6;
+                                    end;
+                                Rec.ImageType::PNG:
+                                    begin
+                                        Rec.LabelStockType := Rec.LabelStockType::PAPER_4X6;
+                                    end;
+                            end;
+                        end;
                     }
                 }
             }
