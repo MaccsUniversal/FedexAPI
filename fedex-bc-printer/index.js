@@ -73,7 +73,7 @@ async function setImageType(type){
 
 async function makeDir(){
     if (fs.existsSync('./Fedex_BC_Labels')){
-
+        console.log('Fedex_BC_Labels folder exists');
     } else {
         fs.mkdir('./Fedex_BC_Labels', (err) =>{
             if(err){
@@ -112,12 +112,12 @@ async function openDirForOrder(){
             }
         })
     } else {
-        fs.mkdir('./Fedex_BC_Labels/' + salesOrderNo, (err) =>{
+        fs.mkdir(fileDir, (err) =>{
             if(err){
                 if (err.errno == -4075){
                     console.log(err.message);
                 } else {
-                    console.error(err);
+                    console.log(err);
                 }
             }
             removeMetaData(printLabels);
@@ -135,7 +135,6 @@ async function removeMetaData(labels) {
         decodeBase64(EncodedLabel, i);       
     }   
     produceBatFile();
-    executePrintFile();
 }
 
 async function decodeBase64(base64Data, index){
@@ -170,17 +169,18 @@ async function produceBatFile(){
             console.log('Print file for ' + salesOrderNo + ' successfully deployed');
         }
     })
+    executePrintFile();
 }
 
 async function executePrintFile(){
     exe.exec('./Fedex_BC_Labels/'+ salesOrderNo + '/printfile.bat', (error, stdout, stderr) =>{
-    if(error){
-        console.error('printfile Error: ', error);
-    } else {
-        console.log('printfile Output: ', stdout);
-        console.log('printfile Output Error: ', stderr);
-    }
-})
+        if(error){
+            console.error('printfile Error: ', error);
+        } else {
+            console.log('printfile Output: ', stdout);
+            console.log('printfile Output Error: ', stderr);
+        }
+    })
 }
 
 app.listen(PORT, ()=>{
