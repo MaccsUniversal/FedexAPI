@@ -5,7 +5,8 @@ codeunit 50103 "Fedex - Create Rsp. Handler"
     begin
         PieceArrayToken := responseHandler();
         PrintLabelArray := SetPrintLabelArray(PieceArrayToken);
-        SendLabelsToPrint(PrintLabelArray);
+        FedexPrintLabels.SetReqBody(PrintLabelArray);
+        FedexPrintLabels.Run();
         SetTrackingNumberFromResponse(ResponseData, SalesShipmentHeader);
     end;
 
@@ -70,17 +71,6 @@ codeunit 50103 "Fedex - Create Rsp. Handler"
         exit(LabelsToPrintObject);
     end;
 
-    local procedure SendLabelsToPrint(LabelsJson: JsonObject)
-    var
-        Client: HttpClient;
-        Content: HttpContent;
-        ContentHeaders: HttpHeaders;
-        Path: Text;
-    begin
-        LabelsJson.WriteTo(Path);
-        Message(Path);
-    end;
-
     procedure SetTrackingNumberFromResponse(HttpResponseMessage: HttpResponseMessage; SalesShipmentHeader: Record "Sales Shipment Header")
     var
         JsonResponse: JsonObject;
@@ -132,5 +122,6 @@ codeunit 50103 "Fedex - Create Rsp. Handler"
         PieceArrayToken: JsonToken;
         SalesShipmentHeader: Record "Sales Shipment Header";
         FedexSetup: Record "Fedex Setup";
+        FedexPrintLabels: Codeunit "Fedex - Print Labels";
 
 }
