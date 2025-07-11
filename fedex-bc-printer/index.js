@@ -19,28 +19,48 @@ app.use(bodyParser.json({limit: '10mb'}));
 
 app.get('/',(req,res) => {
     res.send('Fedex-BC integration');
+    return;
 })
 
-app.post('/print',async (req,res,next)=>{
+app.post('/print',async (req,res)=>{
     const{labels} = req.body;
     const{salesOrderNumber} = req.body;
-    const{imageType} =req.body;
+    const{imageType}  = req.body;
+
     if(labels == undefined){
-        res.send({
+        res.status(403).res.send({
             error: 'Bad-Request',
             message: 'base64 Image not received, please check your input and resend.'
         })
-    } else {
-        res.send({
-            success: 'success',
-            message: 'labels received successfully'
-        })
-        makeDir();
-        setSalesOrderNumber(salesOrderNumber);
-        setLabels(labels);
-        setImageType(imageType);
-        openDirForOrder();
-    }
+        return;
+    } 
+
+    makeDir().then(rootCreation =>{
+        if(!rootCreation.ok){
+            res.status(405).send({
+                "error" : rootCreation.message
+            });
+            return;
+        }
+    })
+
+    setSalesOrderNumber(salesOrderNumber);
+    setLabels(labels);
+    setImageType(imageType);
+
+    openDirForOrder().then(options =>{
+        if(!options.ok){
+            res.status(405).send({
+                "error" : options.message
+            });
+            return;                
+        } else {
+            res.status(200).send({
+                "successful" : "successful",
+                "message" : options.message
+            })
+        }
+    });
 })
 
 async function setLabels(labels){
@@ -72,25 +92,44 @@ async function setImageType(type){
 }
 
 async function makeDir(){
+    let rootCreation;
     if (fs.existsSync('./Fedex_BC_Labels')){
+            rootCreation = {
+                "ok" : true,
+                "message" : "Root directory exists"
+            }
         console.log('Fedex_BC_Labels folder exists');
     } else {
         fs.mkdir('./Fedex_BC_Labels', (err) =>{
             if(err){
-                if (err.errno == -4075){
-                    console.log(err.message);
-                } else if(err.errno != -4075) {
-                    console.error(err);
+                if(err.errno != -4075) {
+                    console.log(err);
                 }
+                rootCreation = {
+                    "ok" : false,
+                    "message" : "Root directory creation error: " + err.message
+                }
+                return;
             }
         });
+        rootCreation = {
+            "ok" : true,
+            "message" : "Root directory created successfully."
+        }
+
     }
+    return rootCreation;
 
 }
 
 async function openDirForOrder(){
     let fileDir = './Fedex_BC_Labels/' + salesOrderNo;
+    let directoryExists;
     if(fs.existsSync(fileDir)){
+        directoryExists = {
+            "ok" : true,
+            "message" : "directory " + fileDir + " updated."
+        };
         fs.readdir(fileDir,(err,files) =>{
             if(err){
                 console.error(err);
@@ -98,48 +137,48 @@ async function openDirForOrder(){
                 files.forEach(file =>{
                     fs.unlink(fileDir + '/' + file,(err) =>{
                         if(err){
-                            if(err.code = -4058){
-
-                            } else {
-                                console.error(err);
-                            }
+                            console.error(err);
                         } else {
                             console.log('deleted file ', file);
                         }
                     })
                 })
-                removeMetaData(printLabels);
+                base64Processing(printLabels);
             }
         })
     } else {
         fs.mkdir(fileDir, (err) =>{
             if(err){
-                if (err.errno == -4075){
-                    console.log(err.message);
-                } else {
-                    console.log(err);
+                console.log(err.message);
+                directoryExists = {
+                    "ok" : false,
+                    "message" : "Directory Creation Error: " + err.message + "\nPlease contact administrator."
                 }
+                return;
             }
-            removeMetaData(printLabels);
         });
+        console.log('file %1 created', fileDir);
+        directoryExists = {
+            "ok" : true,
+            "message" : "file directory " + fileDir + " created."
+        }
+        base64Processing(printLabels);
     }
-    
-
-
+    return directoryExists;
 }
 
-async function removeMetaData(labels) {
+async function base64Processing(labels) {
     for(var i = 0; i < labels.length; i++){
         const {EncodedLabel} = labels[i];
         EncodedLabel.replace(/^EncodedLabel:\/\w+;base64,/, ''); 
-        decodeBase64(EncodedLabel, i);       
-    }   
+        decodeBase64(EncodedLabel, i);
+    }
     produceBatFile();
 }
 
 async function decodeBase64(base64Data, index){
-    var buffer = Buffer.from(base64Data,'base64');
-    saveImage(wasFileAppended, buffer, index);
+    var buf1 = Buffer.from(base64Data,'base64');
+    saveImage(wasFileAppended, buf1, index + 1);
 }
 
 var wasFileAppended = async function(err, ok){
@@ -148,15 +187,15 @@ var wasFileAppended = async function(err, ok){
 }
 
 async function saveImage(callback, buffer, ind){
-   fs.writeFile('./Fedex_BC_Labels/'+ salesOrderNo + '/label' + ind + '.' + iType, buffer, (err) => {
-        if(err) {
-            console.error('Error: ', err + ' occured with label ' + ind + ' in folder ' + os.homedir + '/Desktop/Fedex_BC_Labels/'+ salesOrderNo);
-            callback(err, false);
-        } else {
-            console.log('label ' + ind + ' saved to folder ' + os.homedir + '/Desktop/Fedex_BC_Labels/'+ salesOrderNo);
-            callback(null, true);
-        }
-    })
+        fs.writeFile('./Fedex_BC_Labels/'+ salesOrderNo + '/label' + ind + '.' + iType, buffer, (err) => {
+                if(err) {
+                    console.error('Error: ', err + ' occured with label ' + ind + ' in folder ' + os.homedir + '/Desktop/Fedex_BC_Labels/'+ salesOrderNo);
+                    callback(err, false);
+                } else {
+                    console.log('label ' + ind + ' saved to folder ' + os.homedir + '/Desktop/Fedex_BC_Labels/'+ salesOrderNo);
+                    callback(null, true);
+                }
+            })
 }
 
 
@@ -164,7 +203,7 @@ async function produceBatFile(){
     const script = '@echo off\nsetlocal\n\n@echo starting process...\n\nset "folder=' + './Fedex_BC_Labels/'+ salesOrderNo + '"\nset "printer=TSC DA210"\n\n@echo Default printer set to %printer%\n\nRUNDLL32 PRINTUI.DLL,PrintUIEntry /y /n "%printer%"\n\nfor %%f in ("%folder%\*.png") do (\n' + '    mspaint /pt "%%f" "%printer%"'  + '\n' + '    @echo printed %%f\n' + '    timeout /t 5 >nul' + '\n' + ')\n\n' + '@echo Default Task Complete!';
     fs.writeFile('./Fedex_BC_Labels/'+ salesOrderNo + '/printfile.bat', script, (err) =>{
         if(err){
-            console.error('printfile Error: ', err);
+            console.log('printfile Error: ', err);
         } else {
             console.log('Print file for ' + salesOrderNo + ' successfully deployed');
         }
