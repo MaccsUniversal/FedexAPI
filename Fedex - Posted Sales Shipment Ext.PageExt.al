@@ -18,12 +18,11 @@ pageextension 50101 "Fedex - Pstd Sales Shpment" extends "Posted Sales Shipment"
 
                 trigger OnAction()
                 var
-                    CreateLabel: Codeunit "Fedex - Create Shipment";
+                    CreateLabel: Codeunit "Fedex - Create Label";
                     SalesShipmentHdr: Record "Sales Shipment Header";
                 begin
                     SalesShipmentHdr.Copy(Rec);
                     CreateLabel.Run(SalesShipmentHdr);
-                    Message('Just Created a Label.')
                 end;
             }
 
@@ -46,8 +45,12 @@ pageextension 50101 "Fedex - Pstd Sales Shpment" extends "Posted Sales Shipment"
                 Image = CancelledEntries;
 
                 trigger OnAction()
+                var
+                    CancelLabel: Codeunit "Fedex - Cancel Labels";
+                    SalesShipmentHdr: Record "Sales Shipment Header";
                 begin
-                    Message('Just Cancelled a Label.')
+                    SalesShipmentHdr.Copy(Rec);
+                    CancelLabel.Run(SalesShipmentHdr);
                 end;
             }
         }

@@ -6,8 +6,11 @@ const exe = require('child_process');
 const ngrok = require('ngrok');
 const { dirname } = require('path');
 const { error } = require('console');
+const { buffer } = require('stream/consumers');
 
-
+let base64LabelArray = [];
+let bufferImages =[];
+let totalSaved = 0;
 let printLabels;
 let salesOrderNo;
 let iType;
@@ -22,46 +25,101 @@ app.get('/',(req,res) => {
     return;
 })
 
-app.post('/print',async (req,res)=>{
-    const{labels} = req.body;
+app.post('/create_directory', async (req,res) =>{
     const{salesOrderNumber} = req.body;
-    const{imageType}  = req.body;
+    setSalesOrderNumber(salesOrderNumber);
 
-    if(labels == undefined){
-        res.status(403).res.send({
-            error: 'Bad-Request',
-            message: 'base64 Image not received, please check your input and resend.'
-        })
-        return;
-    } 
-
-    makeDir().then(rootCreation =>{
+    await makeDir().then(rootCreation =>{
         if(!rootCreation.ok){
             res.status(405).send({
-                "error" : rootCreation.message
+                message : rootCreation.message
             });
             return;
         }
-    })
+    });
 
-    setSalesOrderNumber(salesOrderNumber);
-    setLabels(labels);
-    setImageType(imageType);
-
-    openDirForOrder().then(options =>{
+    await checkDirForOrder().then(options =>{
         if(!options.ok){
             res.status(405).send({
-                "error" : options.message
+                message : options.message
             });
             return;                
         } else {
             res.status(200).send({
-                "successful" : "successful",
-                "message" : options.message
+                message : options.message
             })
         }
     });
 })
+
+app.post('/print_labels',async (req,res)=>{
+    const{labels} = req.body;
+    setLabels(labels);
+    const{salesOrderNumber} = req.body;
+    setSalesOrderNumber(salesOrderNumber);
+    const{imageType}  = req.body;
+    setImageType(imageType);
+
+    if(labels == undefined){
+        res.status(403).res.send({
+            message : 'base64 Image not received, please check your input and resend.'
+        })
+        return;
+    } 
+
+    await base64Processing(printLabels);
+    await decodeLabels();
+    for(var i = 0; i < bufferImages.length; i++){
+        await saveImage(bufferImages[i], i + 1)
+    }
+    await produceBatFile();
+    if(totalSaved != labels.length){
+        res.status(200).send({
+            message : totalSaved + " out of " + labels.length + " labels saved."
+        })
+        resetVariables();
+        return;
+    } else {
+        res.status(200).send({
+            message : totalSaved + ' out of ' + labels.length + ' labels saved.'
+        })
+        resetVariables();
+        return;
+    }
+
+})
+
+app.put('/clear_directory', async (req,res) =>{
+    const{salesOrderNumber} = req.body;
+    setSalesOrderNumber(salesOrderNumber);
+
+    if (fs.existsSync('./Fedex_BC_Labels/' + salesOrderNo)){
+        await clearDirForOrder().then(directoryCleared =>{
+        if(!directoryCleared.ok){
+                res.status(405).send({
+                    message : directoryCleared.message
+                })
+                return;
+            } else {
+                res.status(200).send({
+                    message: directoryCleared.message
+                })
+                return
+            }
+        });
+    } else {
+        res.status(405).send({
+            message : "Cannot find directory."
+        })
+        return;
+    }
+})
+
+async function resetVariables(){
+    base64LabelArray = [];
+    bufferImages = [];
+    totalSaved = 0;
+}
 
 async function setLabels(labels){
     printLabels = labels;
@@ -88,7 +146,6 @@ async function setImageType(type){
         default:
             console.error('Cannot recognize imagetype. please contact administrator for assitance.');
     } 
-
 }
 
 async function makeDir(){
@@ -122,30 +179,39 @@ async function makeDir(){
 
 }
 
-async function openDirForOrder(){
+async function clearDirForOrder(){
+    let fileDir = './Fedex_BC_Labels/' + salesOrderNo;
+    let directoryExists;
+    if(fs.existsSync(fileDir)){
+        fs.rmdir(fileDir, (err) =>{
+            if(err){
+                console.log(err);
+            } else {
+                console.log('folder deleted.');
+            }
+        })
+        directoryExists = {
+            "ok" : true,
+            "message" : "directory " + fileDir + " deleted."
+        };
+    } else {
+        directoryExists = {
+            "ok" : false,
+            "message" : "nothing to delete."
+        };
+    }
+    return directoryExists;
+}
+
+async function checkDirForOrder(){
     let fileDir = './Fedex_BC_Labels/' + salesOrderNo;
     let directoryExists;
     if(fs.existsSync(fileDir)){
         directoryExists = {
-            "ok" : true,
-            "message" : "directory " + fileDir + " updated."
+            "ok" : false,
+            "message" : "directory " + fileDir + " exists."
         };
-        fs.readdir(fileDir,(err,files) =>{
-            if(err){
-                console.error(err);
-            } else {
-                files.forEach(file =>{
-                    fs.unlink(fileDir + '/' + file,(err) =>{
-                        if(err){
-                            console.error(err);
-                        } else {
-                            console.log('deleted file ', file);
-                        }
-                    })
-                })
-                base64Processing(printLabels);
-            }
-        })
+        return;
     } else {
         fs.mkdir(fileDir, (err) =>{
             if(err){
@@ -162,7 +228,6 @@ async function openDirForOrder(){
             "ok" : true,
             "message" : "file directory " + fileDir + " created."
         }
-        base64Processing(printLabels);
     }
     return directoryExists;
 }
@@ -171,31 +236,32 @@ async function base64Processing(labels) {
     for(var i = 0; i < labels.length; i++){
         const {EncodedLabel} = labels[i];
         EncodedLabel.replace(/^EncodedLabel:\/\w+;base64,/, ''); 
-        decodeBase64(EncodedLabel, i);
+        base64LabelArray.push(EncodedLabel);
     }
-    produceBatFile();
 }
 
-async function decodeBase64(base64Data, index){
+async function decodeLabels(){
+    for(var i = 0; i < base64LabelArray.length; i++){
+        decodeBase64(base64LabelArray[i]);
+    }
+}
+
+async function decodeBase64(base64Data){
     var buf1 = Buffer.from(base64Data,'base64');
-    saveImage(wasFileAppended, buf1, index + 1);
+    bufferImages.push(buf1);
 }
 
-var wasFileAppended = async function(err, ok){
-    if (err) throw err;
-    ok;
-}
-
-async function saveImage(callback, buffer, ind){
-        fs.writeFile('./Fedex_BC_Labels/'+ salesOrderNo + '/label' + ind + '.' + iType, buffer, (err) => {
-                if(err) {
-                    console.error('Error: ', err + ' occured with label ' + ind + ' in folder ' + os.homedir + '/Desktop/Fedex_BC_Labels/'+ salesOrderNo);
-                    callback(err, false);
-                } else {
-                    console.log('label ' + ind + ' saved to folder ' + os.homedir + '/Desktop/Fedex_BC_Labels/'+ salesOrderNo);
-                    callback(null, true);
-                }
-            })
+async function saveImage(buf1, index){
+    let imageSaved = 0;
+    fs.writeFile('./Fedex_BC_Labels/'+ salesOrderNo + '/label' + index + '.' + iType, buf1, (err) => {
+        if(err) {
+            console.log('Error: ', err + ' occured with label ' + index + ' in folder ' + os.homedir + '/Desktop/Fedex_BC_Labels/'+ salesOrderNo);
+            return;
+        } 
+    })
+    console.log('label ' + index + ' saved to folder ' + os.homedir + '/Desktop/Fedex_BC_Labels/'+ salesOrderNo);
+    imageSaved = 1;
+    totalSaved = totalSaved + imageSaved;
 }
 
 

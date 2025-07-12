@@ -141,7 +141,7 @@ page 50100 "Fedex Setup Page"
 
                 trigger OnAction()
                 var
-                    FedexAuth: Codeunit FedexAuthorization;
+                    FedexAuth: Codeunit "Fedex Authorization";
                 begin
                     FedexAuth.Run();
                 end;

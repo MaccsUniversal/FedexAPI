@@ -1,43 +1,6 @@
-codeunit 50105 "Fedex - Print Labels"
+codeunit 50109 "Fedex Http Error Handler"
 {
-    trigger OnRun()
-    begin
-        ReqContent := SetContent();
-        SendLabelsToPrint(ReqContent);
-    end;
-
-    procedure SetReqBody(JsonInput: JsonObject)
-    begin
-        JsonInput.WriteTo(ReqBody);
-    end;
-
-    local procedure SetContent() Content: HttpContent
-    var
-        ContentHeaders: HttpHeaders;
-    begin
-        Content.WriteFrom(ReqBody);
-        Content.GetHeaders(ContentHeaders);
-        ContentHeaders.Clear();
-        ContentHeaders.Add('Content-Type', 'application/json');
-        exit(Content);
-    end;
-
-    local procedure SendLabelsToPrint(Content: HttpContent)
-    var
-        Path: Text;
-        Endpoint: Text;
-        IsSuccessful: Boolean;
-    begin
-        Path := 'https://perch-moral-purely.ngrok-free.app/';
-        Endpoint := 'print';
-        IsSuccessful := Client.Post(Path + Endpoint, Content, ResponseMessage);
-        if not IsSuccessful then
-            Error('Print Labels Codeunit failed to execute');
-
-        HandleHttpError(ResponseMessage);
-    end;
-
-    local procedure HandleHttpError(HttpResponseMessage: HttpResponseMessage)
+    procedure HandleHttpError(HttpResponseMessage: HttpResponseMessage)
     var
         StatusCode: Integer;
         ReasonPhrase: Text;
@@ -85,11 +48,5 @@ codeunit 50105 "Fedex - Print Labels"
     end;
 
     var
-        Client: HttpClient;
-        ReqContent: HttpContent;
-        ResponseMessage: HttpResponseMessage;
-        ReqBody: Text;
-        JsonBody: JsonObject;
-        FedexSetup: Record "Fedex Setup";
-
+        myInt: Integer;
 }

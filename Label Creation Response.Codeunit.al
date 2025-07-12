@@ -1,12 +1,12 @@
-codeunit 50103 "Fedex - Create Rsp. Handler"
+codeunit 50103 "Label Creation Response"
 {
     Permissions = tabledata "Sales Shipment Header" = M;
     trigger OnRun()
     begin
         PieceArrayToken := responseHandler();
         PrintLabelArray := SetPrintLabelArray(PieceArrayToken);
-        FedexPrintLabels.SetReqBody(PrintLabelArray);
-        FedexPrintLabels.Run();
+        PrintLabels.SetReqBody(PrintLabelArray);
+        PrintLabels.Run();
         SetTrackingNumberFromResponse(ResponseData, SalesShipmentHeader);
     end;
 
@@ -122,6 +122,6 @@ codeunit 50103 "Fedex - Create Rsp. Handler"
         PieceArrayToken: JsonToken;
         SalesShipmentHeader: Record "Sales Shipment Header";
         FedexSetup: Record "Fedex Setup";
-        FedexPrintLabels: Codeunit "Fedex - Print Labels";
+        PrintLabels: Codeunit "Printer - Print Labels";
 
 }

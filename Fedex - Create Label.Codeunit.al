@@ -1,4 +1,4 @@
-codeunit 50102 "Fedex - Create Shipment"
+codeunit 50102 "Fedex - Create Label"
 {
     TableNo = "Sales Shipment Header";
     Permissions = tabledata "Sales Shipment Header" = M;
@@ -8,16 +8,25 @@ codeunit 50102 "Fedex - Create Shipment"
         Token := GetAccessToken();
         SetAuthorizationHeader(Token);
         RequestContent := SetContentHeaders(Rec);
+        CreateDirectory(Rec);
         CallShipAPI();
-        HandleResponse(Response, Rec);
-        Message(GetResponseText(Response));
+        HandleCreationResponse(Response, Rec);
     end;
 
-    local procedure HandleResponse(ResponseMsg: HttpResponseMessage; ShipmentHdr: Record "Sales Shipment Header")
+    local procedure CreateDirectory(ShipmentHdr: Record "Sales Shipment Header")
+    var
+        PrinterCreateDir: Codeunit "Printer - Create Directory";
+        Exists: Boolean;
     begin
-        FedexCreationResponse.SetResponseData(ResponseMsg);
-        FedexCreationResponse.SetShipmentHeader(ShipmentHdr);
-        FedexCreationResponse.Run();
+        PrinterCreateDir.SetSalesShipmentHeader(ShipmentHdr);
+        PrinterCreateDir.Run();
+    end;
+
+    local procedure HandleCreationResponse(ResponseMsg: HttpResponseMessage; ShipmentHdr: Record "Sales Shipment Header")
+    begin
+        LabelCreationResponse.SetResponseData(ResponseMsg);
+        LabelCreationResponse.SetShipmentHeader(ShipmentHdr);
+        LabelCreationResponse.Run();
     end;
 
     local procedure CallShipAPI(): HttpResponseMessage
@@ -30,12 +39,12 @@ codeunit 50102 "Fedex - Create Shipment"
         Endpoint := '/ship/v1/shipments';
         IsSuccessful := HttpClient.Post(Path + Endpoint, RequestContent, Response);
         if IsSuccessful then
-            HandleHttpError(Response);
+            FedexHttpErrorHandler.HandleHttpError(Response);
     end;
 
     local procedure RefreshToken()
     var
-        FedexAuthorization: Codeunit FedexAuthorization;
+        FedexAuthorization: Codeunit "Fedex Authorization";
     begin
         if not FedexSetup.Find('-') then
             exit;
@@ -301,62 +310,6 @@ codeunit 50102 "Fedex - Create Shipment"
         exit(ResponseText);
     end;
 
-    local procedure HandleFedexSetupError()
-    var
-        FieldName: Text;
-        ErrorFieldDescrription: Text;
-    begin
-
-    end;
-
-    local procedure HandleHttpError(HttpResponseMessage: HttpResponseMessage)
-    var
-        StatusCode: Integer;
-        ReasonPhrase: Text;
-        ErrorTypeDescription: Text;
-    begin
-        if HttpResponseMessage.IsSuccessStatusCode() then
-            exit;
-
-        StatusCode := HttpResponseMessage.HttpStatusCode();
-        ReasonPhrase := HttpResponseMessage.ReasonPhrase();
-        ErrorTypeDescription := GetHttpErrorDescription(StatusCode);
-
-        Error(
-            'HTTP Error Occurred:\Status Code: %1\Reason: %2\Details: %3',
-            StatusCode, ReasonPhrase, ErrorTypeDescription
-        );
-    end;
-
-    local procedure GetHttpErrorDescription(StatusCode: Integer): Text
-    begin
-        case StatusCode of
-            400:
-                exit('Bad Request - The server could not understand the request due to invalid syntax.');
-            401:
-                exit('Unauthorized - Authentication is required and has failed or not been provided.');
-            403:
-                exit('Forbidden - You do not have permission to access this resource.');
-            404:
-                exit('Not Found - The requested resource could not be found.');
-            405:
-                exit('Method Not Allowed - The request method is not supported for this resource.');
-            408:
-                exit('Request Timeout - The server timed out waiting for the request.');
-            500:
-                exit('Internal Server Error - A generic error occurred on the server.');
-            502:
-                exit('Bad Gateway - Received an invalid response from the upstream server.');
-            503:
-                exit('Service Unavailable - The server is not ready to handle the request.');
-            504:
-                exit('Gateway Timeout - The server did not receive a timely response.');
-            else
-                exit('An unexpected HTTP error occurred. Please refer to the documentation or error logs for more detail.');
-        end;
-    end;
-
-
     var
         Token: Text;
         HttpClient: HttpClient;
@@ -365,7 +318,8 @@ codeunit 50102 "Fedex - Create Shipment"
         Body: JsonObject;
         Payload: Text;
         FedexSetup: Record "Fedex Setup";
-        FedexCreationResponse: Codeunit "Fedex - Create Rsp. Handler";
+        LabelCreationResponse: Codeunit "Label Creation Response";
+        FedexHttpErrorHandler: Codeunit "Fedex Http Error Handler";
         TotalWeight: Decimal;
         SalesShipmentLine: Record "Sales Shipment Line";
 

@@ -1,4 +1,4 @@
-codeunit 50100 FedexAuthorization
+codeunit 50100 "Fedex Authorization"
 {
     var
         HttpClient: HttpClient;
