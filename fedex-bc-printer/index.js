@@ -48,6 +48,7 @@ app.post('/create_directory', async (req,res) =>{
             res.status(200).send({
                 message : options.message
             })
+            return;
         }
     });
 })
@@ -183,7 +184,7 @@ async function clearDirForOrder(){
     let fileDir = './Fedex_BC_Labels/' + salesOrderNo;
     let directoryExists;
     if(fs.existsSync(fileDir)){
-        fs.rmdir(fileDir, (err) =>{
+        fs.rm(fileDir,{recursive: true, force: true}, (err) =>{
             if(err){
                 console.log(err);
             } else {
@@ -207,11 +208,18 @@ async function checkDirForOrder(){
     let fileDir = './Fedex_BC_Labels/' + salesOrderNo;
     let directoryExists;
     if(fs.existsSync(fileDir)){
+        fs.rm(fileDir,{recursive: true, force: true}, (err) =>{
+            if(err){
+                console.log(err);
+            } else {
+                console.log('folder deleted.');
+            }
+        })
         directoryExists = {
             "ok" : false,
             "message" : "directory " + fileDir + " exists."
         };
-        return;
+        return directoryExists;
     } else {
         fs.mkdir(fileDir, (err) =>{
             if(err){
@@ -220,10 +228,10 @@ async function checkDirForOrder(){
                     "ok" : false,
                     "message" : "Directory Creation Error: " + err.message + "\nPlease contact administrator."
                 }
-                return;
+                return directoryExists;
             }
         });
-        console.log('file %1 created', fileDir);
+        console.log('file ' + fileDir + ' created');
         directoryExists = {
             "ok" : true,
             "message" : "file directory " + fileDir + " created."

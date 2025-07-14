@@ -11,6 +11,16 @@ codeunit 50107 "Fedex - Cancel Labels"
         RequestContent := SetContentHeaders(Rec);
         CheckDirectoryExists(Rec);
         CallCancelAPI();
+        HandleCancellationResponse(Response, Rec);
+    end;
+
+    local procedure HandleCancellationResponse(ResponseMessage: HttpResponseMessage; SalesShipmentHeader: Record "Sales Shipment Header")
+    var
+        LabelCancelledResponse: Codeunit "Label Cancellation Response";
+    begin
+        LabelCancelledResponse.SetResponseData(Response);
+        LabelCancelledResponse.SetShipmentHeader(SalesShipmentHeader);
+        LabelCancelledResponse.Run();
     end;
 
     local procedure CallCancelAPI()
@@ -18,7 +28,6 @@ codeunit 50107 "Fedex - Cancel Labels"
         Path: Text;
         Endpoint: Text;
         IsSuccessful: Boolean;
-        Response: HttpResponseMessage;
         Rtext: Text;
     begin
         Path := GetURLPath();
@@ -27,8 +36,6 @@ codeunit 50107 "Fedex - Cancel Labels"
         if IsSuccessful then
             FedexHttpErrorHandler.HandleHttpError(Response);
 
-        Response.Content.ReadAs(Rtext);
-        Message(Rtext);
     end;
 
     local procedure GetURLPath() Path: Text
@@ -120,8 +127,9 @@ codeunit 50107 "Fedex - Cancel Labels"
         FedexSetup: Record "Fedex Setup";
         FedexHttpErrorHandler: Codeunit "Fedex Http Error Handler";
         HttpClient: HttpClient;
-        Body: JsonObject;
         RequestContent: HttpContent;
+        Response: HttpResponseMessage;
+        Body: JsonObject;
         Payload: Text;
 
     [IntegrationEvent(false, false)]

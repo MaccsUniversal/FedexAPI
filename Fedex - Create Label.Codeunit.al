@@ -173,7 +173,6 @@ codeunit 50102 "Fedex - Create Label"
         AccountNumber := GetAccountNumber();
         RequestedShipmentObj.Add('accountNumber', AccountNumber);
         RequestedShipmentObj.Add('oneLabelAtATime', false);
-        Message(Format(RequestedShipmentObj));
         exit(RequestedShipmentObj);
     end;
 

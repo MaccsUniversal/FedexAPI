@@ -43,6 +43,7 @@ codeunit 50105 "Printer - Print Labels"
         ResponseObj.ReadFrom(ResponseText);
         ResponseObj.Get('message', ResponseToken);
         ResponseToken.WriteTo(TokenAsText);
+        TokenAsText := TokenAsText.Replace('"', '');
         Message(TokenAsText);
     end;
 

@@ -3,7 +3,7 @@ codeunit 50103 "Label Creation Response"
     Permissions = tabledata "Sales Shipment Header" = M;
     trigger OnRun()
     begin
-        PieceArrayToken := responseHandler();
+        PieceArrayToken := CreationResponseHandler();
         PrintLabelArray := SetPrintLabelArray(PieceArrayToken);
         PrintLabels.SetReqBody(PrintLabelArray);
         PrintLabels.Run();
@@ -20,7 +20,7 @@ codeunit 50103 "Label Creation Response"
         SalesShipmentHeader := ShipmentHeader;
     end;
 
-    local procedure responseHandler() ArrayToken: JsonToken
+    local procedure CreationResponseHandler() ArrayToken: JsonToken
     var
         ResponseObjectAsText: Text;
         ResponseObj: JsonObject;

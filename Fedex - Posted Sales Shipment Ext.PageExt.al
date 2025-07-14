@@ -10,7 +10,7 @@ pageextension 50101 "Fedex - Pstd Sales Shpment" extends "Posted Sales Shipment"
         addlast("&Shipment")
         {
 
-            action(CreateLabel)
+            action("CreateLabel")
             {
                 Caption = 'Create Label';
                 ApplicationArea = Basic, Suite;
@@ -20,23 +20,28 @@ pageextension 50101 "Fedex - Pstd Sales Shpment" extends "Posted Sales Shipment"
                 var
                     CreateLabel: Codeunit "Fedex - Create Label";
                     SalesShipmentHdr: Record "Sales Shipment Header";
+                    SalesOrder: Record "Sales Header";
                 begin
+                    if SalesOrder.Get(SalesOrder."Document Type"::Order, Rec."Order No.") then
+                        if StrLen(SalesOrder."Package Tracking No.") > 0 then
+                            Error('Label has already been created. Please check print server files to confirm.');
+
                     SalesShipmentHdr.Copy(Rec);
                     CreateLabel.Run(SalesShipmentHdr);
                 end;
             }
 
-            action(UpdateLabel)
-            {
-                Caption = 'Update Label';
-                ApplicationArea = Basic, Suite;
-                Image = UpdateXML;
+            // action(UpdateLabel)
+            // {
+            //     Caption = 'Update Label';
+            //     ApplicationArea = Basic, Suite;
+            //     Image = UpdateXML;
 
-                trigger OnAction()
-                begin
-                    Message('Just Updated a Label.')
-                end;
-            }
+            //     trigger OnAction()
+            //     begin
+            //         Message('Just Updated a Label.')
+            //     end;
+            // }
 
             action(CancelLabel)
             {
@@ -65,9 +70,9 @@ pageextension 50101 "Fedex - Pstd Sales Shpment" extends "Posted Sales Shipment"
                 actionref(LabelCreation; CreateLabel)
                 {
                 }
-                actionref(LabelUpdate; UpdateLabel)
-                {
-                }
+                // actionref(LabelUpdate; UpdateLabel)
+                // {
+                // }
                 actionref(LabelCancellation; CancelLabel)
                 {
                 }
