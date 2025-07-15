@@ -16,32 +16,27 @@ pageextension 50101 "Fedex - Pstd Sales Shpment" extends "Posted Sales Shipment"
                 ApplicationArea = Basic, Suite;
                 Image = CreateDocuments;
 
+
                 trigger OnAction()
                 var
                     CreateLabel: Codeunit "Fedex - Create Label";
                     SalesShipmentHdr: Record "Sales Shipment Header";
                     SalesOrder: Record "Sales Header";
+                    SalesShipmentLines: Record "Sales Shipment Line";
                 begin
-                    if SalesOrder.Get(SalesOrder."Document Type"::Order, Rec."Order No.") then
+                    if not SalesOrder.Get(SalesOrder."Document Type"::Order, Rec."Order No.") then begin
+                        Error('This shipment has been already been invoiced.');
+                    end else begin
                         if StrLen(SalesOrder."Package Tracking No.") > 0 then
                             Error('Label has already been created. Please check print server files to confirm.');
+                    end;
 
+                    SalesShipmentLines.Copy(GetSalesShipmentLines(Rec));
+                    CreateLabel.SetShipmentLines(SalesShipmentLines);
                     SalesShipmentHdr.Copy(Rec);
                     CreateLabel.Run(SalesShipmentHdr);
                 end;
             }
-
-            // action(UpdateLabel)
-            // {
-            //     Caption = 'Update Label';
-            //     ApplicationArea = Basic, Suite;
-            //     Image = UpdateXML;
-
-            //     trigger OnAction()
-            //     begin
-            //         Message('Just Updated a Label.')
-            //     end;
-            // }
 
             action(CancelLabel)
             {
@@ -70,13 +65,21 @@ pageextension 50101 "Fedex - Pstd Sales Shpment" extends "Posted Sales Shipment"
                 actionref(LabelCreation; CreateLabel)
                 {
                 }
-                // actionref(LabelUpdate; UpdateLabel)
-                // {
-                // }
                 actionref(LabelCancellation; CancelLabel)
                 {
                 }
             }
         }
     }
+
+    local procedure GetSalesShipmentLines(ShipmentHdr: Record "Sales Shipment Header") ShipmentLines: Record "Sales Shipment Line"
+    begin
+        ShipmentLines.Reset();
+        ShipmentLines.SetFilter(ShipmentLines."Order No.", ShipmentHdr."Order No.");
+        ShipmentLines.SetFilter(ShipmentLines."Qty. Shipped Not Invoiced", '>0');
+        ShipmentLines.SetFilter(ShipmentLines."Shipment Date", Format(ShipmentHdr."Shipment Date"));
+        ShipmentLines.SetFilter(Type, Format(ShipmentLines.Type::Item));
+        ShipmentLines.FindSet();
+        exit(ShipmentLines);
+    end;
 }

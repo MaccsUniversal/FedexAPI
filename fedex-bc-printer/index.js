@@ -208,13 +208,6 @@ async function checkDirForOrder(){
     let fileDir = './Fedex_BC_Labels/' + salesOrderNo;
     let directoryExists;
     if(fs.existsSync(fileDir)){
-        fs.rm(fileDir,{recursive: true, force: true}, (err) =>{
-            if(err){
-                console.log(err);
-            } else {
-                console.log('folder deleted.');
-            }
-        })
         directoryExists = {
             "ok" : false,
             "message" : "directory " + fileDir + " exists."

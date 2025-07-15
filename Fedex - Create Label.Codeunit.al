@@ -13,6 +13,11 @@ codeunit 50102 "Fedex - Create Label"
         HandleCreationResponse(Response, Rec);
     end;
 
+    procedure SetShipmentLines(var ShipmentHeaderLines: Record "Sales Shipment Line")
+    begin
+        SalesShipmentLine.copy(ShipmentHeaderLines);
+    end;
+
     local procedure CreateDirectory(ShipmentHdr: Record "Sales Shipment Header")
     var
         PrinterCreateDir: Codeunit "Printer - Create Directory";
@@ -121,6 +126,7 @@ codeunit 50102 "Fedex - Create Label"
         RateRequestType: JsonArray;
         Weight: JsonObject;
         AccountNumber: JsonObject;
+        ReqObj: Text;
     begin
         TotalPackageCount := 0;
         TotalWeight := 0;
@@ -137,9 +143,6 @@ codeunit 50102 "Fedex - Create Label"
         RequestedShipmentTokens.Add('serviceType', ShippingAgentServicesDescription);
         RequestedShipmentTokens.Add('packagingType', 'YOUR_PACKAGING');
 
-        SalesShipmentLine.Reset();
-        SalesShipmentLine.SetFilter("Order No.", SalesShipmentHeader."Order No.");
-        SalesShipmentLine.SetFilter(Type, Format(SalesShipmentLine.Type::Item));
         SalesShipmentLine.FindSet();
         repeat
             TotalWeight += (SalesShipmentLine."Gross Weight" * SalesShipmentLine."Qty. Shipped Not Invoiced");
@@ -173,6 +176,8 @@ codeunit 50102 "Fedex - Create Label"
         AccountNumber := GetAccountNumber();
         RequestedShipmentObj.Add('accountNumber', AccountNumber);
         RequestedShipmentObj.Add('oneLabelAtATime', false);
+        RequestedShipmentObj.WriteTo(ReqObj);
+        Message(ReqObj);
         exit(RequestedShipmentObj);
     end;
 
@@ -183,9 +188,15 @@ codeunit 50102 "Fedex - Create Label"
     end;
 
     local procedure GetDescription(var SalesShipmentLine: Record "Sales Shipment Line") Description: Text
+    var
+        DescEdited: Text;
     begin
-        Description := Format(SalesShipmentLine.Description, 50);
-        Description := Description.Replace(' ', '');
+        if StrLen(SalesShipmentLine.Description) > 50 then begin
+            Description := Format(SalesShipmentLine.Description, 50);
+        end else begin
+            Description := Format(SalesShipmentLine.Description, StrLen(SalesShipmentLine.Description));
+        end;
+        Description := Description.Trim();
         exit(Description);
     end;
 
@@ -196,17 +207,20 @@ codeunit 50102 "Fedex - Create Label"
         ShipperStreetLinesArray: JsonArray;
         ShipperContact: JsonObject;
         CompanyInfo: Record "Company Information";
+        PhoneNumber: Text;
     begin
         if not CompanyInfo.Find('-') then
             Error('Company Information not found');
-        ShipperStreetLinesArray.Add(CompanyInfo."Ship-to Address");
+        ShipperStreetLinesArray.Add(CompanyInfo.Address);
+        ShipperStreetLinesArray.Add(CompanyInfo."Address 2");
         ShipperAddTokens.Add('streetLines', ShipperStreetLinesArray);
-        ShipperAddTokens.Add('city', 'Luton');
-        ShipperAddTokens.Add('postalCode', CompanyInfo."Ship-to Post Code");
-        ShipperAddTokens.Add('countryCode', CompanyInfo."Ship-to Country/Region Code");
+        ShipperAddTokens.Add('city', 'Bedford');
+        ShipperAddTokens.Add('postalCode', CompanyInfo."Post Code");
+        ShipperAddTokens.Add('countryCode', CompanyInfo."Country/Region Code");
         ShipperAddTokens.Add('residential', false);
-        ShipperContact.Add('personName', CompanyInfo."Ship-to Contact");
-        ShipperContact.Add('phoneNumber', CompanyInfo."Ship-to Phone No.");
+        ShipperContact.Add('personName', CompanyInfo.Name);
+        PhoneNumber := CompanyInfo."Phone No.".Replace(' ', '');
+        ShipperContact.Add('phoneNumber', PhoneNumber);
         ShipperObj.Add('address', ShipperAddTokens);
         ShipperObj.Add('contact', ShipperContact);
         exit(ShipperObj);
@@ -219,6 +233,9 @@ codeunit 50102 "Fedex - Create Label"
         ContactObj: JsonObject;
         RecipientContactTokens: JsonObject;
         RecipientStreetLinesArray: JsonArray;
+        PhoneNumber: Text;
+        EmailAddress: Text;
+        CompanyName: Text;
     begin
         RecipientStreetLinesArray.Add(SalesShipmentHeader."Ship-to Address");
         RecipientAddressTokens.Add('streetLines', RecipientStreetLinesArray);
@@ -226,13 +243,34 @@ codeunit 50102 "Fedex - Create Label"
         RecipientAddressTokens.Add('countryCode', 'GB');
         RecipientAddressTokens.Add('postalCode', SalesShipmentHeader."Ship-to Post Code");
         RecipientDetailsAddressObj.Add('address', RecipientAddressTokens);
-        RecipientContactTokens.Add('companyName', SalesShipmentHeader."Ship-to Name");
-        RecipientContactTokens.Add('emailAddress', SalesShipmentHeader."Sell-to E-Mail");
-        RecipientContactTokens.Add('phoneNumber', SalesShipmentHeader."Sell-to Phone No.");
+
+        if StrLen(SalesShipmentHeader."Ship-to Name") > 35 then begin
+            CompanyName := Format(SalesShipmentHeader."Ship-to Name", 35);
+        end else begin
+            CompanyName := Format(SalesShipmentHeader."Ship-to Name", StrLen(SalesShipmentHeader."Ship-to Name"));
+        end;
+
+        RecipientContactTokens.Add('companyName', CompanyName);
+        EmailAddress := SplitEmailAddress(SalesShipmentHeader."Sell-to E-Mail");
+        RecipientContactTokens.Add('emailAddress', EmailAddress);
+        PhoneNumber := SalesShipmentHeader."Sell-to Phone No.".Replace(' ', '');
+        RecipientContactTokens.Add('phoneNumber', PhoneNumber.Trim());
         RecipientContactTokens.Add('personName', SalesShipmentHeader."Ship-to Contact");
         RecipientDetailsAddressObj.Add('contact', RecipientContactTokens);
         RecipientObj.Add(RecipientDetailsAddressObj);
         exit(RecipientObj);
+    end;
+
+    local Procedure SplitEmailAddress(var Input: Text) UsableEmailAddress: Text
+    var
+        SplitList: List of [Text];
+        Email: Text;
+    begin
+        if not Input.Contains(';') then
+            exit(Input);
+
+        SplitList := Input.Split(';');
+        exit(SplitList.Get(1));
     end;
 
     local procedure GetShippingAgentServicesDescription(var SalesShipmentHeader: Record "Sales Shipment Header") ShippingAgentServDesc: Text
