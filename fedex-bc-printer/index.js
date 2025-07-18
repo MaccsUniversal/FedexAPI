@@ -2,11 +2,14 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const os = require('os');
-const exe = require('child_process');
+const { spawn } = require('child_process');
 const ngrok = require('ngrok');
 const { dirname } = require('path');
 const { error } = require('console');
 const { buffer } = require('stream/consumers');
+const { Worker } = require('node:worker_threads');
+require('dotenv').config();
+
 
 let base64LabelArray = [];
 let bufferImages =[];
@@ -15,8 +18,9 @@ let printLabels;
 let salesOrderNo;
 let iType;
 
+const PORT = process.env.PORT;
 const app = express();
-const PORT = process.env.PORT || '3000';
+
 
 app.use(bodyParser.json({limit: '10mb'}));
 
@@ -207,13 +211,7 @@ async function clearDirForOrder(){
 async function checkDirForOrder(){
     let fileDir = './Fedex_BC_Labels/' + salesOrderNo;
     let directoryExists;
-    if(fs.existsSync(fileDir)){
-        directoryExists = {
-            "ok" : false,
-            "message" : "directory " + fileDir + " exists."
-        };
-        return directoryExists;
-    } else {
+    if(!fs.existsSync(fileDir)){
         fs.mkdir(fileDir, (err) =>{
             if(err){
                 console.log(err.message);
@@ -229,8 +227,43 @@ async function checkDirForOrder(){
             "ok" : true,
             "message" : "file directory " + fileDir + " created."
         }
+        return directoryExists;
+    } else {
+        directoryExists = {
+            "ok" : true,
+            "message" : fileDir + " ready."
+        }
+        return directoryExists;
     }
-    return directoryExists;
+}
+
+async function mkPrintfilesDir(){
+    let printfileDir = './Printfiles/';
+    let directoryExists;
+    if(!fs.existsSync(printfileDir)){
+        fs.mkdir(printfileDir, (err) =>{
+            if(err){
+                console.log(err.message);
+                directoryExists = {
+                    "ok" : false,
+                    "message" : "Directory Creation Error: " + err.message + "\nPlease contact administrator."
+                }
+                return directoryExists;
+            }
+        });
+        console.log('file ' + printfileDir + ' created');
+        directoryExists = {
+            "ok" : true,
+            "message" : "file directory " + printfileDir + " created."
+        }
+        return directoryExists;
+    } else {
+        directoryExists = {
+            "ok" : true,
+            "message" : printfileDir + " ready."
+        }
+        return directoryExists;
+    }
 }
 
 async function base64Processing(labels) {
@@ -267,8 +300,8 @@ async function saveImage(buf1, index){
 
 
 async function produceBatFile(){
-    const script = '@echo off\nsetlocal\n\n@echo starting process...\n\nset "folder=' + './Fedex_BC_Labels/'+ salesOrderNo + '"\nset "printer=TSC DA210"\n\n@echo Default printer set to %printer%\n\nRUNDLL32 PRINTUI.DLL,PrintUIEntry /y /n "%printer%"\n\nfor %%f in ("%folder%\*.png") do (\n' + '    mspaint /pt "%%f" "%printer%"'  + '\n' + '    @echo printed %%f\n' + '    timeout /t 5 >nul' + '\n' + ')\n\n' + '@echo Default Task Complete!';
-    fs.writeFile('./Fedex_BC_Labels/'+ salesOrderNo + '/printfile.bat', script, (err) =>{
+    const script = 'cd /d "%~dp0"\n@echo off\nsetlocal\n\n@echo starting process...\n\nset "folder=' + '../Fedex_BC_Labels/'+ salesOrderNo + '"\nset "printer=TSC DA210"\n\n@echo Default printer set to %printer%\n\nRUNDLL32 PRINTUI.DLL,PrintUIEntry /y /n "%printer%"\n\nfor %%f in ("%folder%\\*.png") do (\n' + '    mspaint /pt "%%f" "%printer%"'  + '\n' + '    @echo printed %%f\n' + '    timeout /t 5 >nul' + '\n' + ')\n\n' + '@echo Default Task Complete!';
+    fs.writeFile('./Printfiles/printfile_' + salesOrderNo + '.bat', script, (err) =>{
         if(err){
             console.log('printfile Error: ', err);
         } else {
@@ -279,16 +312,36 @@ async function produceBatFile(){
 }
 
 async function executePrintFile(){
-    exe.exec('./Fedex_BC_Labels/'+ salesOrderNo + '/printfile.bat', (error, stdout, stderr) =>{
-        if(error){
-            console.error('printfile Error: ', error);
-        } else {
-            console.log('printfile Output: ', stdout);
-            console.log('printfile Output Error: ', stderr);
-        }
+    const printer = spawn('cmd.exe', ['/c', 'start "" "' + os.homedir + '\\Desktop\\fedex-bc-printer\\Printfiles\\printfile_' + salesOrderNo + '.bat"'], {
+    shell: true
+    });
+
+    printer.stdout.on('data', data =>{
+        console.log('Output: %d', data);
+    });
+
+    printer.stderr.on('data', data => {
+    console.log('Error: %d', data);
     })
 }
 
 app.listen(PORT, ()=>{
     console.log('Fedex print server running on port: ', PORT);
-},)
+    mkPrintfilesDir();
+    const ngrokWorker = new Worker('./ngrokWorker.js');
+    ngrokWorker.addListener('error', (nwerror) => {
+        console.log('Ngrok Error: ' + nwerror);
+    })
+
+    ngrokWorker.addListener('message', (nwmessage)=>{
+        console.log('Ngrok message: ' + nwmessage);
+    })
+
+    ngrokWorker.addListener('messageerror', (nwmessageerror)=>{
+        console.log('Ngrok message error: ' + nwmessageerror);
+    })
+})
+
+app.on('kill', ()=>{
+    ngrokWorker.terminate();
+})

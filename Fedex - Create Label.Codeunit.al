@@ -177,7 +177,7 @@ codeunit 50102 "Fedex - Create Label"
         RequestedShipmentObj.Add('accountNumber', AccountNumber);
         RequestedShipmentObj.Add('oneLabelAtATime', false);
         RequestedShipmentObj.WriteTo(ReqObj);
-        // Message(ReqObj);
+        Message(ReqObj);
         exit(RequestedShipmentObj);
     end;
 
@@ -207,20 +207,63 @@ codeunit 50102 "Fedex - Create Label"
         ShipperStreetLinesArray: JsonArray;
         ShipperContact: JsonObject;
         CompanyInfo: Record "Company Information";
+        Address: Text;
+        Address2: Text;
+        PostCode: Text;
+        CountryRegionCode: Text;
+        Name: Text;
         PhoneNumber: Text;
+        Contact: Text;
     begin
         if not CompanyInfo.Find('-') then
             Error('Company Information not found');
-        ShipperStreetLinesArray.Add(CompanyInfo.Address);
+
+        if StrLen(CompanyInfo.Address) > 35 then begin
+            Address := Format(CompanyInfo.Address, 35);
+        end else begin
+            Address := Format(CompanyInfo.Address);
+        end;
+        ShipperStreetLinesArray.Add(Address);
+
+        if StrLen(CompanyInfo."Address 2") > 35 then begin
+            Address2 := Format(CompanyInfo."Address 2", 35);
+        end else begin
+            Address2 := Format(CompanyInfo."Address 2");
+        end;
         ShipperStreetLinesArray.Add(CompanyInfo."Address 2");
         ShipperAddTokens.Add('streetLines', ShipperStreetLinesArray);
         ShipperAddTokens.Add('city', 'Bedford');
+
+        if StrLen(CompanyInfo."Post Code") > 10 then begin
+            PostCode := Format(CompanyInfo."Post Code", 10);
+        end else begin
+            PostCode := Format(CompanyInfo."Post Code");
+        end;
         ShipperAddTokens.Add('postalCode', CompanyInfo."Post Code");
+
+        if StrLen(CompanyInfo."Country/Region Code") > 2 then begin
+            CountryRegionCode := Format(CompanyInfo."Country/Region Code", 2);
+        end else begin
+            CountryRegionCode := Format(CompanyInfo."Country/Region Code");
+        end;
+
+        if CountryRegionCode <> 'GB' then
+            Error('Company Information: Country/Region Code must =''GB''');
         ShipperAddTokens.Add('countryCode', CompanyInfo."Country/Region Code");
         ShipperAddTokens.Add('residential', false);
+        if StrLen(CompanyInfo.Name) > 35 then begin
+            Name := Format(CompanyInfo.Name, 35);
+        end else begin
+            Name := Format(CompanyInfo.Name);
+        end;
         ShipperContact.Add('personName', CompanyInfo.Name);
         PhoneNumber := CompanyInfo."Phone No.".Replace(' ', '');
-        ShipperContact.Add('phoneNumber', PhoneNumber);
+        if StrLen(PhoneNumber) > 15 then begin
+            PhoneNumber := Format(PhoneNumber, 15);
+        end else begin
+            PhoneNumber := Format(PhoneNumber);
+        end;
+        ShipperContact.Add('phoneNumber', PhoneNumber.Trim());
         ShipperObj.Add('address', ShipperAddTokens);
         ShipperObj.Add('contact', ShipperContact);
         exit(ShipperObj);
@@ -233,15 +276,36 @@ codeunit 50102 "Fedex - Create Label"
         ContactObj: JsonObject;
         RecipientContactTokens: JsonObject;
         RecipientStreetLinesArray: JsonArray;
+        Address: Text;
+        City: Text;
         PhoneNumber: Text;
         EmailAddress: Text;
         CompanyName: Text;
+        PostCode: Text;
+        Contact: Text;
     begin
-        RecipientStreetLinesArray.Add(SalesShipmentHeader."Ship-to Address");
+        if StrLen(SalesShipmentHeader."Ship-to Address") > 35 then begin
+            Address := Format(SalesShipmentHeader."Ship-to Address", 35);
+        end else begin
+            Address := Format(SalesShipmentHeader."Ship-to Address");
+        end;
+        RecipientStreetLinesArray.Add(Address);
         RecipientAddressTokens.Add('streetLines', RecipientStreetLinesArray);
-        RecipientAddressTokens.Add('city', SalesShipmentHeader."Ship-to City");
+
+        if StrLen(SalesShipmentHeader."Ship-to City") > 35 then begin
+            City := Format(SalesShipmentHeader."Ship-to City", 35);
+        end else begin
+            City := Format(SalesShipmentHeader."Ship-to City");
+        end;
+        RecipientAddressTokens.Add('city', City);
         RecipientAddressTokens.Add('countryCode', 'GB');
-        RecipientAddressTokens.Add('postalCode', SalesShipmentHeader."Ship-to Post Code");
+
+        if StrLen(SalesShipmentHeader."Ship-to Post Code") > 35 then begin
+            PostCode := Format(SalesShipmentHeader."Ship-to Post Code", 35);
+        end else begin
+            PostCode := Format(SalesShipmentHeader."Ship-to Post Code");
+        end;
+        RecipientAddressTokens.Add('postalCode', Postcode);
         RecipientDetailsAddressObj.Add('address', RecipientAddressTokens);
 
         if StrLen(SalesShipmentHeader."Ship-to Name") > 35 then begin
@@ -249,12 +313,31 @@ codeunit 50102 "Fedex - Create Label"
         end else begin
             CompanyName := Format(SalesShipmentHeader."Ship-to Name", StrLen(SalesShipmentHeader."Ship-to Name"));
         end;
-
         RecipientContactTokens.Add('companyName', CompanyName);
+
         EmailAddress := SplitEmailAddress(SalesShipmentHeader."Sell-to E-Mail");
+        if StrLen(EmailAddress) > 80 then begin
+            EmailAddress := Format(EmailAddress, 80);
+        end else begin
+            EmailAddress := Format(EmailAddress);
+        end;
         RecipientContactTokens.Add('emailAddress', EmailAddress);
+
+        If SalesShipmentHeader."Sell-to Phone No." = '' then
+            Error('Please enter a valid phone number on the customer card.');
         PhoneNumber := SalesShipmentHeader."Sell-to Phone No.".Replace(' ', '');
+        if StrLen(PhoneNumber) > 15 then begin
+            PhoneNumber := Format(PhoneNumber, 15);
+        end else begin
+            PhoneNumber := Format(PhoneNumber);
+        end;
         RecipientContactTokens.Add('phoneNumber', PhoneNumber.Trim());
+
+        if StrLen(SalesShipmentHeader."Ship-to Contact") > 35 then begin
+            Contact := Format(SalesShipmentHeader."Ship-to Contact", 35);
+        end else begin
+            Contact := Format(SalesShipmentHeader."Ship-to Contact");
+        end;
         RecipientContactTokens.Add('personName', SalesShipmentHeader."Ship-to Contact");
         RecipientDetailsAddressObj.Add('contact', RecipientContactTokens);
         RecipientObj.Add(RecipientDetailsAddressObj);
