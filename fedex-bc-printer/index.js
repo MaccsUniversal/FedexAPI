@@ -300,7 +300,7 @@ async function saveImage(buf1, index){
 
 
 async function produceBatFile(){
-    const script = 'cd /d "%~dp0"\n@echo off\nsetlocal\n\n@echo starting process...\n\nset "folder=' + '../Fedex_BC_Labels/'+ salesOrderNo + '"\nset "printer=TSC DA210"\n\n@echo Default printer set to %printer%\n\nRUNDLL32 PRINTUI.DLL,PrintUIEntry /y /n "%printer%"\n\nfor %%f in ("%folder%\\*.png") do (\n' + '    mspaint /pt "%%f" "%printer%"'  + '\n' + '    @echo printed %%f\n' + '    timeout /t 5 >nul' + '\n' + ')\n\n' + '@echo Default Task Complete!';
+    const script = 'cd /d "%~dp0"\n@echo off\nsetlocal\n\n@echo starting process...\n\nset "folder=' + '../Fedex_BC_Labels/'+ salesOrderNo + '"\nset "printer=TSC DA210"\n\n@echo Default printer set to %printer%\n\nRUNDLL32 PRINTUI.DLL,PrintUIEntry /y /n "%printer%"\n\nfor %%f in ("%folder%\\*.png") do (\n' + '    mspaint /pt "%%f" "%printer%"'  + '\n' + '    @echo printed %%f\n' + '    timeout /t 5 >nul' + '\n' + ')\n\n' + '@echo Default Task Complete!\n exit 0';
     fs.writeFile('./Printfiles/printfile_' + salesOrderNo + '.bat', script, (err) =>{
         if(err){
             console.log('printfile Error: ', err);

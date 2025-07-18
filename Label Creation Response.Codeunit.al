@@ -106,11 +106,13 @@ codeunit 50103 "Label Creation Response"
 
             OrderNo := SalesShipmentHeader."Order No.";
 
-            SalesShipmentHeader."Package Tracking No." := TrackingNumber;
+            SalesShipmentHeader."Fedex Tracking No." := TrackingNumber;
+            SalesShipmentHeader."Label Status" := SalesShipmentHeader."Label Status"::Generated;
             SalesShipmentHeader.Modify();
 
             if SalesOrderHeader.Get(SalesOrderHeader."Document Type"::Order, OrderNo) then begin
-                SalesOrderHeader."Package Tracking No." := TrackingNumber;
+                SalesOrderHeader."Fedex Tracking No." := TrackingNumber;
+                SalesOrderHeader."Label Status" := SalesOrderHeader."Label Status"::Generated;
                 SalesOrderHeader.Modify();
             end;
         end;

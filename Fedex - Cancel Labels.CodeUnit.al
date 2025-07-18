@@ -65,7 +65,7 @@ codeunit 50107 "Fedex - Cancel Labels"
             CancelShipmentObject.Add('accountNumber', ValueObject);
             CancelShipmentObject.Add('emailShipment', false);
             CancelShipmentObject.Add('senderCountryCode', 'GB');
-            CancelShipmentObject.Add('trackingNumber', SalesShipmentHeader."Package Tracking No.");
+            CancelShipmentObject.Add('trackingNumber', SalesShipmentHeader."Fedex Tracking No.");
         end;
         exit(CancelShipmentObject)
     end;
@@ -76,7 +76,7 @@ codeunit 50107 "Fedex - Cancel Labels"
         ContentHeaders: HttpHeaders;
         IsHandled: Boolean;
     begin
-        if SalesShipmentHeader."Package Tracking No." = '' then
+        if SalesShipmentHeader."Fedex Tracking No." = '' then
             Error('Package Tracking Number cannot be blank. Shipment No.= %1', SalesShipmentHeader."No.");
 
         IsHandled := false;

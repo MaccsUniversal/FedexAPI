@@ -5,17 +5,19 @@ codeunit 50109 "Fedex Http Error Handler"
         StatusCode: Integer;
         ReasonPhrase: Text;
         ErrorTypeDescription: Text;
+        FurtherDetails: Text;
     begin
         if HttpResponseMessage.IsSuccessStatusCode() then
             exit;
 
+        HttpResponseMessage.Content.ReadAs(FurtherDetails);
         StatusCode := HttpResponseMessage.HttpStatusCode();
         ReasonPhrase := HttpResponseMessage.ReasonPhrase();
         ErrorTypeDescription := GetHttpErrorDescription(StatusCode);
 
         Error(
-            'HTTP Error Occurred:\Status Code: %1\Reason: %2\Details: %3',
-            StatusCode, ReasonPhrase, ErrorTypeDescription
+            'HTTP Error Occurred:\Status Code: %1\Reason: %2\Message: %3 \Detailed message: %4',
+            StatusCode, ReasonPhrase, ErrorTypeDescription, FurtherDetails
         );
     end;
 
