@@ -346,14 +346,18 @@ codeunit 50102 "Fedex - Create Label"
 
     local Procedure SplitEmailAddress(var Input: Text) UsableEmailAddress: Text
     var
+        Selected: Integer;
         SplitList: List of [Text];
-        Email: Text;
+        EmailOptions: Text;
+        Text000: Label 'Customer email for label';
     begin
         if not Input.Contains(';') then
             exit(Input);
 
+        EmailOptions := Input.Replace(';', ',');
+        Selected := StrMenu(EmailOptions, 1, Text000);
         SplitList := Input.Split(';');
-        exit(SplitList.Get(1));
+        exit(SplitList.Get(Selected));
     end;
 
     local procedure GetShippingAgentServicesDescription(var SalesShipmentHeader: Record "Sales Shipment Header") ShippingAgentServDesc: Text
