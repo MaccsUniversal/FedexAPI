@@ -18,6 +18,7 @@ let printLabels;
 let salesOrderNo;
 let iType;
 
+const ngrokWorker = new Worker('./ngrokWorker.js');
 const PORT = process.env.PORT;
 const app = express();
 
@@ -328,7 +329,7 @@ async function executePrintFile(){
 app.listen(PORT, ()=>{
     console.log('Fedex print server running on port: ', PORT);
     mkPrintfilesDir();
-    const ngrokWorker = new Worker('./ngrokWorker.js');
+    
     ngrokWorker.addListener('error', (nwerror) => {
         console.log('Ngrok Error: ' + nwerror);
     })
@@ -340,8 +341,4 @@ app.listen(PORT, ()=>{
     ngrokWorker.addListener('messageerror', (nwmessageerror)=>{
         console.log('Ngrok message error: ' + nwmessageerror);
     })
-})
-
-app.on('kill', ()=>{
-    ngrokWorker.terminate();
 })
