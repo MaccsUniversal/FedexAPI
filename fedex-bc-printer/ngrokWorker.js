@@ -21,15 +21,6 @@ exec('ngrok config add-authtoken ' + authtoken, (error,stdout,stderr)=>{
     }
 
 });
-    // ngrokAuth.stdout.on('data', data =>{
-    //     console.log('Output: %d', data);
-    //     // parentPort.postMessage(data);
-    // });
-
-    // ngrokAuth.stderr.on('data', data => {
-    //     console.log('Error: %d', data);
-    //     // parentPort.postMessage(data);
-    // });
 
 const ngrokServer = spawn('cmd.exe',['/c','start "" ngrok http --url=perch-moral-purely.ngrok-free.app ' + port],{shell: true});
     ngrokServer.stdout.on('data', data =>{
