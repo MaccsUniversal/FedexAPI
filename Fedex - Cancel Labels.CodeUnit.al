@@ -77,7 +77,7 @@ codeunit 50107 "Fedex - Cancel Labels"
         IsHandled: Boolean;
     begin
         if SalesShipmentHeader."Fedex Tracking No." = '' then
-            Error('Package Tracking Number cannot be blank. Shipment No.= %1', SalesShipmentHeader."No.");
+            Error('Fedex Tracking Number cannot be blank. Shipment No.= %1', SalesShipmentHeader."No.");
 
         IsHandled := false;
         OnBeforeSetContentHeaders(Content, ContentHeaders, IsHandled);
