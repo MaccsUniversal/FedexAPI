@@ -383,7 +383,17 @@ codeunit 50102 "Fedex - Create Label"
     end;
 
     local procedure GetGroupPackageCount(var SalesShipmentLine: Record "Sales Shipment Line") GroupPackageCount: Integer
+    var
+        BundleItem: Record "Fedex Bundle Items";
+        CalcGroupPackageCount: Decimal;
     begin
+        BundleItem.Reset();
+        if BundleItem.Get(SalesShipmentLine."No.") then begin
+            BundleItem.FindSet();
+            CalcGroupPackageCount := SalesShipmentLine.Quantity / BundleItem."Pcs. Per Parcel";
+            Evaluate(GroupPackageCount, Format(Round(CalcGroupPackageCount, 1, '>')));
+            exit(GroupPackageCount);
+        end;
         Evaluate(GroupPackageCount, Format(Round(SalesShipmentLine.Quantity, 1, '=')));
         exit(GroupPackageCount);
     end;
