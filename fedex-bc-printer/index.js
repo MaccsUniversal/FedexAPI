@@ -193,7 +193,7 @@ async function clearDirForOrder(){
             if(err){
                 console.log(err);
             } else {
-                console.log('folder deleted.');
+                console.log('folder ' + salesOrderNo + ' deleted.');
             }
         })
         directoryExists = {
