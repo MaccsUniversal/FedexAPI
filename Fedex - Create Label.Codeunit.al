@@ -124,7 +124,8 @@ codeunit 50102 "Fedex - Create Label"
         RequestedPackageLineItemsTokens: JsonObject;
         CustomerReferenceArray: JsonArray;
         RateRequestType: JsonArray;
-        Weight: JsonObject;
+        WeightObj: JsonObject;
+        WeightValue: Decimal;
         AccountNumber: JsonObject;
         ReqObj: Text;
     begin
@@ -152,13 +153,14 @@ codeunit 50102 "Fedex - Create Label"
             CustomerReferenceArray := GetCustomerReferenceValues(SalesShipmentHeader);
             RequestedPackageLineItemsTokens.Add('customerReferences', CustomerReferenceArray.AsToken());
             RequestedPackageLineItemsTokens.Add('groupPackageCount', GetGroupPackageCount(SalesShipmentLine));
-            Weight.Add('units', 'KG');
-            Weight.Add('value', SalesShipmentLine."Gross Weight");
-            RequestedPackageLineItemsTokens.Add('weight', Weight.AsToken());
+            WeightObj.Add('units', 'KG');
+            WeightValue := GetWeightValue(SalesShipmentLine);
+            WeightObj.Add('value', WeightValue);
+            RequestedPackageLineItemsTokens.Add('weight', WeightObj.AsToken());
             RequestedPackageLineItemsTokens.Add('itemDescription', GetDescription(SalesShipmentLine));
             RequestedPackageLineItemsArray.Add(RequestedPackageLineItemsTokens);
             Clear(RequestedPackageLineItemsTokens);
-            Clear(Weight);
+            Clear(WeightObj);
             Clear(CustomerReferenceArray);
             SequenceNumber += 1;
         until SalesShipmentLine.Next <= 0;
@@ -179,6 +181,24 @@ codeunit 50102 "Fedex - Create Label"
         RequestedShipmentObj.WriteTo(ReqObj);
         // Message(ReqObj);
         exit(RequestedShipmentObj);
+    end;
+
+    local procedure GetWeightValue(var SalesShipmentLine: Record "Sales Shipment Line") CalcWeight: Decimal
+    var
+        BundleItem: Record "Fedex Bundle Items";
+        CalcGroupPackageCount2: Decimal;
+        GroupPackageCount2: Integer;
+    begin
+        BundleItem.Reset();
+        if BundleItem.Get(SalesShipmentLine."No.") then begin
+            BundleItem.FindSet();
+            CalcGroupPackageCount2 := SalesShipmentLine.Quantity / BundleItem."Pcs. Per Parcel";
+            Evaluate(GroupPackageCount2, Format(Round(CalcGroupPackageCount2, 1, '>')));
+            CalcWeight := (SalesShipmentLine."Gross Weight" * SalesShipmentLine.Quantity) / GroupPackageCount2;
+            exit(CalcWeight);
+        end;
+        CalcWeight := SalesShipmentLine."Gross Weight";
+        exit(CalcWeight);
     end;
 
     local procedure GetAccountNumber() AccountNumber: JsonObject
