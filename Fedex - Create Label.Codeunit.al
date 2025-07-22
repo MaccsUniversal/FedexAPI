@@ -179,7 +179,7 @@ codeunit 50102 "Fedex - Create Label"
         RequestedShipmentObj.Add('accountNumber', AccountNumber);
         RequestedShipmentObj.Add('oneLabelAtATime', false);
         RequestedShipmentObj.WriteTo(ReqObj);
-        // Message(ReqObj);
+        Message(ReqObj);
         exit(RequestedShipmentObj);
     end;
 
@@ -387,7 +387,6 @@ codeunit 50102 "Fedex - Create Label"
         ShippingAgentServices.Reset();
         if not ShippingAgentServices.Get(SalesShipmentHeader."Shipping Agent Code", SalesShipmentHeader."Shipping Agent Service Code") then
             Error('Please input a valid shipping agent service code and agent service.');
-        ShippingAgentServices.FindSet();
         ShippingAgentServDesc := ShippingAgentServices.Description;
         exit(ShippingAgentServDesc);
     end;

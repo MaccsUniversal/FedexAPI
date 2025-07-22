@@ -103,6 +103,14 @@ table 50100 "Fedex Setup"
             ToolTip = 'Your account number.';
             Editable = true;
         }
+
+        field(14; EnableFields; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Enable Label Fields';
+            ToolTip = 'Enables access to Label Status and FedEx Tracking Number fields on Sales Order Card.';
+            Editable = true;
+        }
     }
 
     keys

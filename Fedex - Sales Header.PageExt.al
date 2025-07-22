@@ -6,15 +6,17 @@ pageextension 50106 "Fedex - Sales Order" extends "Sales Order"
         {
             field("Fedex Tracking No."; Rec."Fedex Tracking No.")
             {
+
                 ApplicationArea = All;
-                Enabled = false;
+                Enabled = isEnabled;
                 Caption = 'Fedex Tracking No.';
+
             }
 
             field("Label Status"; Rec."Label Status")
             {
                 ApplicationArea = All;
-                Enabled = false;
+                Enabled = isEnabled;
                 Caption = 'Fedex Label Status';
             }
         }
@@ -25,6 +27,16 @@ pageextension 50106 "Fedex - Sales Order" extends "Sales Order"
         // Add changes to page actions here
     }
 
+    trigger OnOpenPage()
+    begin
+        if FedexSetup.Find('-') then
+            FedexSetup.FindSet();
+
+        if FedexSetup.EnableFields = true then
+            isEnabled := true;
+    end;
+
     var
-        myInt: Integer;
+        FedexSetup: Record "Fedex Setup";
+        isEnabled: Boolean;
 }

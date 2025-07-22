@@ -128,6 +128,17 @@ page 50100 "Fedex Setup Page"
                         end;
                     }
                 }
+
+                group("Field Access")
+                {
+                    Caption = 'Field Access';
+                    field(EnableFields; Rec.EnableFields)
+                    {
+                        Caption = 'Enable Fields';
+                        ApplicationArea = All;
+                        Enabled = true;
+                    }
+                }
             }
         }
     }
@@ -136,9 +147,9 @@ page 50100 "Fedex Setup Page"
     {
         area(Processing)
         {
-            action(ActionName)
+            action("Get Token")
             {
-
+                Caption = 'Get Access Token';
                 trigger OnAction()
                 var
                     FedexAuth: Codeunit "Fedex Authorization";
