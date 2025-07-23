@@ -219,6 +219,8 @@ codeunit 50102 "Fedex - Create Label"
         GroupPackageCount2: Integer;
         Result: Decimal;
     begin
+        if SalesShipmentLine."Gross Weight" = 0.0 then
+            Error('Item No must have a Gross Weight. Shipment=%1. Line=%2. Item=%3. ', SalesShipmentLine."Document No.", SalesShipmentLine."Line No.", SalesShipmentLine."No.");
         BundleItem.Reset();
         if BundleItem.Get(SalesShipmentLine."No.") then begin
             BundleItem.FindSet();
@@ -332,7 +334,7 @@ codeunit 50102 "Fedex - Create Label"
         EmailAddress: Text;
         CompanyName: Text;
         PostCode: Text;
-        Contact: Text;
+        ShipToContact: Text;
     begin
         if StrLen(SalesShipmentHeader."Ship-to Address") > 35 then begin
             Address := Format(SalesShipmentHeader."Ship-to Address", 35);
@@ -373,8 +375,11 @@ codeunit 50102 "Fedex - Create Label"
         end;
         RecipientContactTokens.Add('emailAddress', EmailAddress);
 
-        If SalesShipmentHeader."Sell-to Phone No." = '' then
+        If SalesShipmentHeader."Ship-to Phone No." = '' then begin
             PhoneNumber := GetPhoneNumber();
+        end else begin
+            PhoneNumber := Format(SalesShipmentHeader."Ship-to Phone No.");
+        end;
         if StrLen(PhoneNumber) > 15 then begin
             PhoneNumber := Format(PhoneNumber, 15);
         end else begin
@@ -383,17 +388,17 @@ codeunit 50102 "Fedex - Create Label"
         RecipientContactTokens.Add('phoneNumber', PhoneNumber.Trim());
 
         if StrLen(SalesShipmentHeader."Ship-to Contact") > 35 then begin
-            Contact := Format(SalesShipmentHeader."Ship-to Contact", 35);
+            ShipToContact := Format(SalesShipmentHeader."Ship-to Contact", 35);
         end else begin
-            Contact := Format(SalesShipmentHeader."Ship-to Contact");
+            ShipToContact := Format(SalesShipmentHeader."Ship-to Contact");
         end;
-        RecipientContactTokens.Add('personName', SalesShipmentHeader."Ship-to Contact");
+        RecipientContactTokens.Add('personName', ShipToContact);
         RecipientDetailsAddressObj.Add('contact', RecipientContactTokens);
         RecipientObj.Add(RecipientDetailsAddressObj);
         exit(RecipientObj);
     end;
 
-    local procedure GetPhoneNumber(): Text[30]
+    local procedure GetPhoneNumber(): Text
     var
         Customer: Record Customer;
         Selected: Integer;
