@@ -8,6 +8,7 @@ codeunit 50103 "Label Creation Response"
         PrintLabels.SetReqBody(PrintLabelArray);
         PrintLabels.Run();
         SetTrackingNumberFromResponse(ResponseData, SalesShipmentHeader);
+        OnAfterSetTrackingNumberFromResponse(ResponseData, SalesShipmentHeader);
     end;
 
     procedure SetResponseData(Response: HttpResponseMessage)
@@ -30,12 +31,16 @@ codeunit 50103 "Label Creation Response"
         PackageDocuments: JsonToken;
         PackageDocumentsToken: JsonToken;
     begin
+        OnBeforeCreationResponseHandler(ResponseData, IsHandled, ArrayToken);
+        if IsHandled then
+            exit(ArrayToken);
         ResponseData.Content.ReadAs(ResponseObjectAsText);
         ResponseObj.ReadFrom(ResponseObjectAsText);
         ResponseObj.Get('output', OutputToken);
         OutputToken.AsObject().Get('transactionShipments', transactionShipmentsToken);
         transactionShipmentsToken.AsArray().Get(0, transactionShipments0);
         transactionShipments0.AsObject().Get('pieceResponses', ArrayToken);
+        OnAfterCreationResponseHandler(ArrayToken);
         exit(ArrayToken);
     end;
 
@@ -50,6 +55,11 @@ codeunit 50103 "Label Creation Response"
         PackageDocumentsToken: JsonToken;
         PrintLabelArray: JsonArray;
     begin
+        IsHandled := false;
+        OnBeforeSetPrintLabelArray(ResponseToken, IsHandled, LabelsToPrintObject);
+        if IsHandled then
+            exit(LabelsToPrintObject);
+
         for ArrayCount := 0 to ResponseToken.AsArray().Count - 1 do begin
             Clear(pieceResponsesToken);
             Clear(PackageDocuments);
@@ -68,6 +78,7 @@ codeunit 50103 "Label Creation Response"
             LabelsToPrintObject.Add('imageType', Format(FedexSetup.ImageType));
             LabelsToPrintObject.Add('salesOrderNumber', SalesShipmentHeader."Order No.");
         end;
+        OnAfterSetPrintLabelArray(LabelsToPrintObject);
         exit(LabelsToPrintObject);
     end;
 
@@ -125,5 +136,31 @@ codeunit 50103 "Label Creation Response"
         SalesShipmentHeader: Record "Sales Shipment Header";
         FedexSetup: Record "Fedex Setup";
         PrintLabels: Codeunit "Printer - Print Labels";
+        IsHandled: Boolean;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeCreationResponseHandler(var ResponseData: HttpResponseMessage; var IsHandled: Boolean; var Token: JsonToken)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeSetPrintLabelArray(var ResponseToken: JsonToken; var IsHandled: Boolean; var LabelsToPrintObject: JsonObject)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSetPrintLabelArray(var LabelsToPrintObject: JsonObject);
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterCreationResponseHandler(var Token: JsonToken)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSetTrackingNumberFromResponse(var ResponseData: HttpResponseMessage; var SalesShipmentHeader: Record "Sales Shipment Header")
+    begin
+    end;
 
 }

@@ -15,10 +15,15 @@ codeunit 50105 "Printer - Print Labels"
     var
         ContentHeaders: HttpHeaders;
     begin
+        IsHandled := false;
+        OnBeforeSetContent(Content, IsHandled);
+        if IsHandled then
+            exit(Content);
         Content.WriteFrom(ReqBody);
         Content.GetHeaders(ContentHeaders);
         ContentHeaders.Clear();
         ContentHeaders.Add('Content-Type', 'application/json');
+        OnAfterSetContent(Content);
         exit(Content);
     end;
 
@@ -32,66 +37,27 @@ codeunit 50105 "Printer - Print Labels"
         TokenAsText: Text;
         IsSuccessful: Boolean;
     begin
+        IsHandled := false;
+        OnBeforeSendLabelsToPrint(Content, IsHandled);
+        if IsHandled then
+            exit;
         Path := 'https://perch-moral-purely.ngrok-free.app/';
         Endpoint := 'print_labels';
         IsSuccessful := Client.Post(Path + Endpoint, Content, ResponseMessage);
-        if not IsSuccessful then
+        if not IsSuccessful then begin
             Error('Print Labels Codeunit failed to execute');
+        end else begin
+            if IsSuccessful then
+                FedexHttpErrorHandler.HandleHttpError(ResponseMessage);
+        end;
 
-        HandleHttpError(ResponseMessage);
         ResponseMessage.Content.ReadAs(ResponseText);
         ResponseObj.ReadFrom(ResponseText);
         ResponseObj.Get('message', ResponseToken);
         ResponseToken.WriteTo(TokenAsText);
         TokenAsText := TokenAsText.Replace('"', '');
+        OnAfterSendLabelsToPrint(TokenAsText);
         Message(TokenAsText);
-    end;
-
-    local procedure HandleHttpError(HttpResponseMessage: HttpResponseMessage)
-    var
-        StatusCode: Integer;
-        ReasonPhrase: Text;
-        ErrorTypeDescription: Text;
-    begin
-        if HttpResponseMessage.IsSuccessStatusCode() then
-            exit;
-
-        StatusCode := HttpResponseMessage.HttpStatusCode();
-        ReasonPhrase := HttpResponseMessage.ReasonPhrase();
-        ErrorTypeDescription := GetHttpErrorDescription(StatusCode);
-
-        Error(
-            'HTTP Error Occurred:\Status Code: %1\Reason: %2\Details: %3',
-            StatusCode, ReasonPhrase, ErrorTypeDescription
-        );
-    end;
-
-    local procedure GetHttpErrorDescription(StatusCode: Integer): Text
-    begin
-        case StatusCode of
-            400:
-                exit('Bad Request - The server could not understand the request due to invalid syntax.');
-            401:
-                exit('Unauthorized - Authentication is required and has failed or not been provided.');
-            403:
-                exit('Forbidden - You do not have permission to access this resource.');
-            404:
-                exit('Not Found - The requested resource could not be found.');
-            405:
-                exit('Method Not Allowed - The request method is not supported for this resource.');
-            408:
-                exit('Request Timeout - The server timed out waiting for the request.');
-            500:
-                exit('Internal Server Error - A generic error occurred on the server.');
-            502:
-                exit('Bad Gateway - Received an invalid response from the upstream server.');
-            503:
-                exit('Service Unavailable - The server is not ready to handle the request.');
-            504:
-                exit('Gateway Timeout - The server did not receive a timely response.');
-            else
-                exit('An unexpected HTTP error occurred. Please refer to the documentation or error logs for more detail.');
-        end;
     end;
 
     var
@@ -102,5 +68,27 @@ codeunit 50105 "Printer - Print Labels"
         ResponseText: Text;
         JsonBody: JsonObject;
         FedexSetup: Record "Fedex Setup";
+        FedexHttpErrorHandler: Codeunit "Fedex Http Error Handler";
+        IsHandled: Boolean;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeSendLabelsToPrint(var Content: HttpContent; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeSetContent(var Content: HttpContent; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSetContent(var Content: HttpContent)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSendLabelsToPrint(var TokenAsText: Text)
+    begin
+    end;
 
 }

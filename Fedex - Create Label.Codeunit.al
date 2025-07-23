@@ -42,7 +42,7 @@ codeunit 50102 "Fedex - Create Label"
         Result: HttpResponseMessage;
     begin
         IsHandled := false;
-        BeforeCallShipAPI(IsHandled, Result);
+        BeforeCallShipAPI(HttpClient, IsHandled, Result);
         if IsHandled then
             exit(Result);
 
@@ -69,23 +69,20 @@ codeunit 50102 "Fedex - Create Label"
 
     end;
 
-    local procedure GetAccessToken(): Text
-    var
-        Token: Text;
+    local procedure GetAccessToken() Token: Text
     begin
         IsHandled := false;
         OnBeforeGetAccessToken(IsHandled, Token);
         if IsHandled then
             exit(Token);
         IsolatedStorage.Get('AccessToken', DataScope::Module, Token);
-        OnAfterGetAccessToken(Token);
         exit(Token);
     end;
 
     local procedure SetAuthorizationHeader(Token: Text)
     begin
         IsHandled := false;
-        OnBeforeSetAuthorizationHeader(HttpClient, Token);
+        OnBeforeSetAuthorizationHeader(HttpClient);
         if IsHandled then
             exit;
         HttpClient.DefaultRequestHeaders.Add('Authorization', StrSubstNo('Bearer %1', Token));
@@ -565,17 +562,12 @@ codeunit 50102 "Fedex - Create Label"
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure BeforeCallShipAPI(var IsHandled: Boolean; var Result: HttpResponseMessage)
+    local procedure BeforeCallShipAPI(var HttpClient: HttpClient; var IsHandled: Boolean; var Result: HttpResponseMessage)
     begin
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnBeforeGetAccessToken(var IsHandled: Boolean; var Token: Text)
-    begin
-    end;
-
-    [IntegrationEvent(false, false)]
-    local procedure OnBeforeSetAuthorizationHeader(var HttpClient: HttpClient; var Token: Text)
+    local procedure OnBeforeSetAuthorizationHeader(var HttpClient: HttpClient)
     begin
     end;
 
@@ -635,7 +627,7 @@ codeunit 50102 "Fedex - Create Label"
     end;
 
     [IntegrationEvent(false, false)]
-    local procedure OnAfterGetAccessToken(var Token: Text)
+    local procedure OnBeforeGetAccessToken(var IsHandled: Boolean; var Token: Text)
     begin
     end;
 

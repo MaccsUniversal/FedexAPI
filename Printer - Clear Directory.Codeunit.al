@@ -13,6 +13,10 @@ codeunit 50108 "Printer - Clear Directory"
         IsSuccessful: Boolean;
         Response: HttpResponseMessage;
     begin
+        IsHandled := false;
+        OnBeforeCallCheckDirectory(Client, IsHandled);
+        if IsHandled then
+            exit;
         Path := 'https://perch-moral-purely.ngrok-free.app/';
         Endpoint := 'clear_directory';
         IsSuccessful := Client.Put(Path + Endpoint, RequestContent, Response);
@@ -20,6 +24,7 @@ codeunit 50108 "Printer - Clear Directory"
         if IsSuccessful then
             FedexErrorHandler.HandleHttpError(Response);
 
+        OnAfterCallCheckDirectory(Response);
         SetRecordExists();
     end;
 
@@ -33,20 +38,24 @@ codeunit 50108 "Printer - Clear Directory"
         exit(RecordExists);
     end;
 
-
-
     local procedure SetContent(ShpmntHdr: Record "Sales Shipment Header") Content: HttpContent
     var
         ContentHeaders: HttpHeaders;
         SalesOrderObj: JsonObject;
         Payload: Text;
     begin
+        IsHandled := false;
+        OnBeforeSetContent(ShpmntHdr, Content, IsHandled);
+        if IsHandled then
+            exit(Content);
+
         SalesOrderObj.Add('salesOrderNumber', ShpmntHdr."Order No.");
         SalesOrderObj.WriteTo(Payload);
         Content.WriteFrom(Payload);
         Content.GetHeaders(ContentHeaders);
         ContentHeaders.Clear();
         ContentHeaders.Add('Content-Type', 'application/json');
+        OnAfterSetContent(Content);
         exit(Content);
     end;
 
@@ -61,4 +70,25 @@ codeunit 50108 "Printer - Clear Directory"
         Client: HttpClient;
         FedexErrorHandler: Codeunit "Fedex Http Error Handler";
         RecordExists: Boolean;
+        IsHandled: Boolean;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeCallCheckDirectory(var Client: HttpClient; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeSetContent(var ShpmntHdr: Record "Sales Shipment Header"; var Content: HttpContent; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSetContent(var Content: HttpContent)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterCallCheckDirectory(var Response: HttpResponseMessage)
+    begin
+    end;
 }

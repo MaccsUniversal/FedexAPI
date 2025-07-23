@@ -24,6 +24,10 @@ codeunit 50110 "Label Cancellation Response"
         MessageValue: JsonValue;
         MessageAsText: Text;
     begin
+        IsHandled := false;
+        OnBeforeCancelResponseHandler(ResponseData, IsHandled);
+        if IsHandled then
+            exit;
         ResponseData.Content.ReadAs(ResponseAsText);
         ResponseObj.ReadFrom(ResponseAsText);
         ResponseObj.Get('output', OutputToken);
@@ -41,6 +45,7 @@ codeunit 50110 "Label Cancellation Response"
         CancelledShipmentValue.WriteTo(CancelledShipmentAsText);
         CancelledShipmentAsText := CancelledShipmentAsText.Replace('"', '');
 
+        OnAfterCancelResponseHandler(CancelledShipmentAsText, MessageAsText);
         ShowMessage(CancelledShipmentAsText, MessageAsText);
         RemoveTrackingNumber();
     end;
@@ -105,4 +110,15 @@ codeunit 50110 "Label Cancellation Response"
         ResponseData: HttpResponseMessage;
         SalesShipmentHeader: Record "Sales Shipment Header";
         HideDialog: Boolean;
+        IsHandled: Boolean;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeCancelResponseHandler(var ResponseData: HttpResponseMessage; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterCancelResponseHandler(var CancelledShipmentAsText: Text; var MessageAsText: Text)
+    begin
+    end;
 }

@@ -28,14 +28,18 @@ codeunit 50107 "Fedex - Cancel Labels"
         Path: Text;
         Endpoint: Text;
         IsSuccessful: Boolean;
-        Rtext: Text;
+        Result: Text;
     begin
+        IsHandled := false;
+        BeforeCallShipAPI(HttpClient, IsHandled);
+        if IsHandled then
+            exit;
         Path := GetURLPath();
         Endpoint := '/ship/v1/shipments/cancel';
         IsSuccessful := HttpClient.Put(Path + Endpoint, RequestContent, Response);
         if IsSuccessful then
             FedexHttpErrorHandler.HandleHttpError(Response);
-
+        AfterCallShipAPI(Response);
     end;
 
     local procedure GetURLPath() Path: Text
@@ -67,6 +71,7 @@ codeunit 50107 "Fedex - Cancel Labels"
             CancelShipmentObject.Add('senderCountryCode', 'GB');
             CancelShipmentObject.Add('trackingNumber', SalesShipmentHeader."Fedex Tracking No.");
         end;
+        OnAfterSetRequestBody(SalesShipmentHeader, CancelShipmentObject);
         exit(CancelShipmentObject)
     end;
 
@@ -74,7 +79,6 @@ codeunit 50107 "Fedex - Cancel Labels"
     var
         Content: HttpContent;
         ContentHeaders: HttpHeaders;
-        IsHandled: Boolean;
     begin
         if SalesShipmentHeader."Fedex Tracking No." = '' then
             Error('Fedex Tracking Number cannot be blank. Shipment No.= %1', SalesShipmentHeader."No.");
@@ -113,13 +117,22 @@ codeunit 50107 "Fedex - Cancel Labels"
     var
         Token: Text;
     begin
+        IsHandled := false;
+        OnBeforeGetAccessToken(IsHandled, Token);
+        if IsHandled then
+            exit(Token);
         IsolatedStorage.Get('AccessToken', DataScope::Module, Token);
         exit(Token);
     end;
 
     local procedure SetAuthorizationHeader(Token: Text)
     begin
+        IsHandled := false;
+        OnBeforeSetAuthorizationHeader(HttpClient);
+        if IsHandled then
+            exit;
         HttpClient.DefaultRequestHeaders.Add('Authorization', StrSubstNo('Bearer %1', Token));
+        OnAfterSetAuthorizationHeader(HttpClient);
     end;
 
     var
@@ -131,12 +144,42 @@ codeunit 50107 "Fedex - Cancel Labels"
         Response: HttpResponseMessage;
         Body: JsonObject;
         Payload: Text;
+        IsHandled: Boolean;
 
     [IntegrationEvent(false, false)]
     local procedure OnBeforeSetContentHeaders(var Content: HttpContent; var ContentHeaders: HttpHeaders; var IsHandled: Boolean)
     begin
     end;
 
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeSetAuthorizationHeader(var HttpClient: HttpClient)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure BeforeCallShipAPI(var HttpClient: HttpClient; var IsHandled: Boolean)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeGetAccessToken(var IsHandled: Boolean; var Token: Text)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSetRequestBody(var SalesShipmentHeader: Record "Sales Shipment Header"; var CancelShipmentObject: JsonObject)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure AfterCallShipAPI(var Response: HttpResponseMessage)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSetAuthorizationHeader(var HttpClient: HttpClient)
+    begin
+    end;
 
     [IntegrationEvent(false, false)]
     local procedure OnAfterSetContentHeaders(var Content: HttpContent; var ContentHeaders: HttpHeaders)
