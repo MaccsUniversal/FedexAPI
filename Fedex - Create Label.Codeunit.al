@@ -39,12 +39,20 @@ codeunit 50102 "Fedex - Create Label"
         Path: Text;
         Endpoint: Text;
         IsSuccessful: Boolean;
+        Result: HttpResponseMessage;
     begin
+        IsHandled := false;
+        BeforeCallShipAPI(IsHandled, Result);
+        if IsHandled then
+            exit(Result);
+
         Path := GetURLPath();
         Endpoint := '/ship/v1/shipments';
         IsSuccessful := HttpClient.Post(Path + Endpoint, RequestContent, Response);
         if IsSuccessful then
             FedexHttpErrorHandler.HandleHttpError(Response);
+
+        AfterCallShipAPI(Response);
     end;
 
     local procedure RefreshToken()
@@ -65,20 +73,29 @@ codeunit 50102 "Fedex - Create Label"
     var
         Token: Text;
     begin
+        IsHandled := false;
+        OnBeforeGetAccessToken(IsHandled, Token);
+        if IsHandled then
+            exit(Token);
         IsolatedStorage.Get('AccessToken', DataScope::Module, Token);
+        OnAfterGetAccessToken(Token);
         exit(Token);
     end;
 
     local procedure SetAuthorizationHeader(Token: Text)
     begin
+        IsHandled := false;
+        OnBeforeSetAuthorizationHeader(HttpClient, Token);
+        if IsHandled then
+            exit;
         HttpClient.DefaultRequestHeaders.Add('Authorization', StrSubstNo('Bearer %1', Token));
+        OnAfterSetAuthorizationHeader(HttpClient);
     end;
 
     local procedure SetContentHeaders(var SalesShipmentHeader: Record "Sales Shipment Header"): HttpContent
     var
         Content: HttpContent;
         ContentHeaders: HttpHeaders;
-        IsHandled: Boolean;
     begin
         IsHandled := false;
         OnBeforeSetContentHeaders(Content, ContentHeaders, IsHandled);
@@ -128,19 +145,29 @@ codeunit 50102 "Fedex - Create Label"
         WeightValue: Decimal;
         AccountNumber: JsonObject;
         ReqObj: Text;
+        Result: JsonObject;
     begin
+        IsHandled := false;
+        OnBeforeSetRequestBody(SalesShipmentHeader, IsHandled, Result);
+        if IsHandled then
+            exit(Result);
+
         TotalPackageCount := 0;
         TotalWeight := 0;
         SequenceNumber := 1;
         if not FedexSetup.Find('-') then
             Error('Please complete Fedex Setup Page to continue.');
         ShipperObj := GetShipperJsonObject();
+        OnAfterGetShipperJsonObject(ShipperObj);
         RequestedShipmentTokens.Add('shipper', ShipperObj);
         RecipientObj := GetRecipientJsonArray(SalesShipmentHeader);
+        OnAfterGetRecipientJsonArray(SalesShipmentHeader, RecipientObj);
         RequestedShipmentTokens.Add('recipients', RecipientObj);
         PickUpTypEnum := GetPickUpType(FedexSetup.PickUpType);
+        OnAfterGetPickUpType(PickUpTypEnum);
         RequestedShipmentTokens.Add('pickupType', PickUpTypEnum);// Should this field appear on the Posted Sales Shipment?
         ShippingAgentServicesDescription := GetShippingAgentServicesDescription(SalesShipmentHeader);
+        OnAfterShippingAgentServicesDescription(SalesShipmentHeader, ShippingAgentServicesDescription);
         RequestedShipmentTokens.Add('serviceType', ShippingAgentServicesDescription);
         RequestedShipmentTokens.Add('packagingType', 'YOUR_PACKAGING');
 
@@ -151,10 +178,12 @@ codeunit 50102 "Fedex - Create Label"
             RequestedPackageLineItemsTokens.Add('sequenceNumber', Format(SequenceNumber));
             RequestedPackageLineItemsTokens.Add('subPackagingType', SalesShipmentLine."Unit of Measure Code");
             CustomerReferenceArray := GetCustomerReferenceValues(SalesShipmentHeader);
+            OnAfterGetCustomerReferenceValues(SalesShipmentHeader, CustomerReferenceArray);
             RequestedPackageLineItemsTokens.Add('customerReferences', CustomerReferenceArray.AsToken());
             RequestedPackageLineItemsTokens.Add('groupPackageCount', GetGroupPackageCount(SalesShipmentLine));
             WeightObj.Add('units', 'KG');
             WeightValue := GetWeightValue(SalesShipmentLine);
+            OnAfterGetWeightValue(SalesShipmentLine, WeightValue);
             WeightObj.Add('value', WeightValue);
             RequestedPackageLineItemsTokens.Add('weight', WeightObj.AsToken());
             RequestedPackageLineItemsTokens.Add('itemDescription', GetDescription(SalesShipmentLine));
@@ -168,6 +197,7 @@ codeunit 50102 "Fedex - Create Label"
         ShippingChargesPaymentsTokens.Add('paymentType', 'SENDER');
         RequestedShipmentTokens.Add('shippingChargesPayment', ShippingChargesPaymentsTokens.AsToken());
         LabelSpecificationObj := GetLabelSpecificationObject();
+        OnAfterGetLabelSpecificationObject(LabelSpecificationObj);
         RequestedShipmentTokens.Add('labelSpecification', LabelSpecificationObj);
         RateRequestType.Add('NONE');
         RequestedShipmentTokens.Add('rateRequestType', RateRequestType);
@@ -176,10 +206,12 @@ codeunit 50102 "Fedex - Create Label"
         RequestedShipmentObj.Add('requestedShipment', RequestedShipmentTokens);
         RequestedShipmentObj.Add('labelResponseOptions', 'LABEL');
         AccountNumber := GetAccountNumber();
+        OnAfterGetAccountNumber(AccountNumber);
         RequestedShipmentObj.Add('accountNumber', AccountNumber);
         RequestedShipmentObj.Add('oneLabelAtATime', false);
         RequestedShipmentObj.WriteTo(ReqObj);
-        Message(ReqObj);
+        // Message(ReqObj);
+        OnAfterSetRequestBody(SalesShipmentHeader, RequestedShipmentObj);
         exit(RequestedShipmentObj);
     end;
 
@@ -188,6 +220,7 @@ codeunit 50102 "Fedex - Create Label"
         BundleItem: Record "Fedex Bundle Items";
         CalcGroupPackageCount2: Decimal;
         GroupPackageCount2: Integer;
+        Result: Decimal;
     begin
         BundleItem.Reset();
         if BundleItem.Get(SalesShipmentLine."No.") then begin
@@ -344,8 +377,7 @@ codeunit 50102 "Fedex - Create Label"
         RecipientContactTokens.Add('emailAddress', EmailAddress);
 
         If SalesShipmentHeader."Sell-to Phone No." = '' then
-            Error('Please enter a valid phone number on the customer card.');
-        PhoneNumber := SalesShipmentHeader."Sell-to Phone No.".Replace(' ', '');
+            PhoneNumber := GetPhoneNumber();
         if StrLen(PhoneNumber) > 15 then begin
             PhoneNumber := Format(PhoneNumber, 15);
         end else begin
@@ -364,6 +396,39 @@ codeunit 50102 "Fedex - Create Label"
         exit(RecipientObj);
     end;
 
+    local procedure GetPhoneNumber(): Text[30]
+    var
+        Customer: Record Customer;
+        Selected: Integer;
+        PhoneOptions: Text;
+        Text000: Label 'Customer phone number';
+        SplitList: List of [Text];
+        SelectedNumber: Text;
+        Result: Text;
+    begin
+        IsHandled := false;
+        OnBeforeGetPhoneNumber(SalesShipmentLine, IsHandled, Result);
+        if IsHandled then
+            exit(Result);
+
+        if not Customer.Get(SalesShipmentLine."Sell-to Customer No.") then
+            exit;
+        if (Customer."Phone No." = '') and (Customer."Mobile Phone No." = '') then
+            Error('Please enter a Phone No. or Mobile No. on customer card for customer %1 ', Customer."No.");
+        PhoneOptions := Customer."Phone No." + ',' + Customer."Mobile Phone No.";
+        Selected := StrMenu(PhoneOptions, 1, Text000);
+        if Selected = 0 then begin
+            if Customer."Mobile Phone No." <> '' then begin
+                exit(Customer."Mobile Phone No.");
+            end else begin
+                Error('Please select a phone number from customer card for customer %1 ', Customer."No.");
+            end
+        end;
+        SplitList := PhoneOptions.Split(',');
+        OnAfterGetPhoneNumber(SalesShipmentLine);
+        exit(SplitList.Get(Selected));
+    end;
+
     local Procedure SplitEmailAddress(var Input: Text) UsableEmailAddress: Text
     var
         Selected: Integer;
@@ -371,12 +436,17 @@ codeunit 50102 "Fedex - Create Label"
         EmailOptions: Text;
         Text000: Label 'Customer email for label';
     begin
+        IsHandled := false;
+        OnBeforeSplitEmailAddress(SalesShipmentLine, UsableEmailAddress);
+        if IsHandled then
+            exit(UsableEmailAddress);
         if not Input.Contains(';') then
             exit(Input);
 
         EmailOptions := Input.Replace(';', ',');
         Selected := StrMenu(EmailOptions, 1, Text000);
         SplitList := Input.Split(';');
+        OnAfterSplitEmailAddress(Input, EmailOptions, SplitList, Selected);
         exit(SplitList.Get(Selected));
     end;
 
@@ -426,8 +496,6 @@ codeunit 50102 "Fedex - Create Label"
     end;
 
     local procedure GetPickUpType(var PickUpTypes: Enum "Fedex PickUp Types") Result: Text
-    var
-        IsHandled: Boolean;
     begin
         IsHandled := false;
         OnBeforeGetPickUpType(PickUpTypes, IsHandled, Result);
@@ -475,6 +543,7 @@ codeunit 50102 "Fedex - Create Label"
         FedexHttpErrorHandler: Codeunit "Fedex Http Error Handler";
         TotalWeight: Decimal;
         SalesShipmentLine: Record "Sales Shipment Line";
+        IsHandled: Boolean;
 
     [IntegrationEvent(false, false)]
     local procedure OnBeforeSetContentHeaders(var Content: HttpContent; var ContentHeaders: HttpHeaders; var IsHandled: Boolean)
@@ -483,6 +552,105 @@ codeunit 50102 "Fedex - Create Label"
 
     [IntegrationEvent(false, false)]
     local procedure OnBeforeGetPickUpType(var PickUpTypes: Enum "Fedex PickUp Types"; var IsHandled: Boolean; var Result: Text)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeGetPhoneNumber(var SalesShipmentLine: Record "Sales Shipment Line"; var IsHandled: Boolean; var Result: Text)
+    begin
+    end;
+
+    local procedure OnBeforeSetRequestBody(var SalesShipmentHeader: Record "Sales Shipment Header"; var IsHandled: Boolean; var Result: JsonObject)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure BeforeCallShipAPI(var IsHandled: Boolean; var Result: HttpResponseMessage)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeGetAccessToken(var IsHandled: Boolean; var Token: Text)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeSetAuthorizationHeader(var HttpClient: HttpClient; var Token: Text)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnBeforeSplitEmailAddress(var SalesShipmentLine: Record "Sales Shipment Line"; var UsableEmailAddress: Text)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSplitEmailAddress(var Input: Text; var EmailOptions: Text; var SpiltList: List of [Text]; var Selected: Integer)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetAccountNumber(var AccountNumber: JsonObject)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetLabelSpecificationObject(var LabelSpecificationObj: JsonObject)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetShipperJsonObject(var ShipperObj: JsonObject)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetRecipientJsonArray(var SalesShipmentHeader: Record "Sales Shipment Header"; var RecipientObj: JsonArray)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetPickUpType(var PickUpTypEnum: Text)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterShippingAgentServicesDescription(var SalesShipmentHeader: Record "Sales Shipment Header"; var ShippingAgentServicesDescription: Text);
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetCustomerReferenceValues(var SalesShipmentHeader: Record "Sales Shipment Header"; var CustomerReferenceArray: JsonArray)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetWeightValue(var SalesShipmentLine: Record "Sales Shipment Line"; var CalcWeight: Decimal)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterSetAuthorizationHeader(var HttpClient: HttpClient)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetAccessToken(var Token: Text)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure AfterCallShipAPI(var Response: HttpResponseMessage)
+    begin
+    end;
+
+
+    local procedure OnAfterSetRequestBody(var SalesShipmentHeader: Record "Sales Shipment Header"; var RequestedShipmentObj: JsonObject)
+    begin
+    end;
+
+    [IntegrationEvent(false, false)]
+    local procedure OnAfterGetPhoneNumber(var SalesShipmentLine: Record "Sales Shipment Line")
     begin
     end;
 
