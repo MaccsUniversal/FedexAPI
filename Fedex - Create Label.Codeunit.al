@@ -207,7 +207,7 @@ codeunit 50102 "Fedex - Create Label"
         RequestedShipmentObj.Add('accountNumber', AccountNumber);
         RequestedShipmentObj.Add('oneLabelAtATime', false);
         RequestedShipmentObj.WriteTo(ReqObj);
-        // Message(ReqObj);
+        Message(ReqObj);
         OnAfterSetRequestBody(SalesShipmentHeader, RequestedShipmentObj);
         exit(RequestedShipmentObj);
     end;
@@ -235,6 +235,8 @@ codeunit 50102 "Fedex - Create Label"
 
     local procedure GetAccountNumber() AccountNumber: JsonObject
     begin
+        if (FedexSetup.AccountNumber = '') or (StrLen(FedexSetup.AccountNumber) <> 9) then
+            Error('Invalid Account Number. Please check that your Account Number is 9 digits long and. Fedex Setup Table. Account Number=%1.', FedexSetup.AccountNumber);
         AccountNumber.Add('value', FedexSetup.AccountNumber);
         exit(AccountNumber);
     end;
@@ -266,10 +268,13 @@ codeunit 50102 "Fedex - Create Label"
         Name: Text;
         PhoneNumber: Text;
         Contact: Text;
+        City: Text;
     begin
         if not CompanyInfo.Find('-') then
             Error('Company Information not found');
 
+        if CompanyInfo.Address = '' then
+            Error('Company Address must not be empty. Company Information. Company Address=%1.', CompanyInfo.Address);
         if StrLen(CompanyInfo.Address) > 35 then begin
             Address := Format(CompanyInfo.Address, 35);
         end else begin
@@ -284,8 +289,18 @@ codeunit 50102 "Fedex - Create Label"
         end;
         ShipperStreetLinesArray.Add(CompanyInfo."Address 2");
         ShipperAddTokens.Add('streetLines', ShipperStreetLinesArray);
-        ShipperAddTokens.Add('city', 'Bedford');
 
+        if CompanyInfo.City = '' then
+            Error('Company City must not be empty. Company Information. Company City=%1.', CompanyInfo.City);
+        if StrLen(CompanyInfo.City) > 35 then begin
+            City := Format(CompanyInfo.City, 35);
+        end else begin
+            City := Format(CompanyInfo.City);
+        end;
+        ShipperAddTokens.Add('city', City);
+
+        if CompanyInfo."Post Code" = '' then
+            Error('Company Post Code must not be empty. Company Information. Company Post Code=%1.', CompanyInfo."Post Code");
         if StrLen(CompanyInfo."Post Code") > 10 then begin
             PostCode := Format(CompanyInfo."Post Code", 10);
         end else begin
@@ -293,6 +308,8 @@ codeunit 50102 "Fedex - Create Label"
         end;
         ShipperAddTokens.Add('postalCode', CompanyInfo."Post Code");
 
+        if CompanyInfo."Country/Region Code" = '' then
+            Error('Company Country/Region Code must not be empty. Company Information. Company Country/Region Code=%1.', CompanyInfo."Country/Region Code");
         if StrLen(CompanyInfo."Country/Region Code") > 2 then begin
             CountryRegionCode := Format(CompanyInfo."Country/Region Code", 2);
         end else begin
@@ -309,6 +326,9 @@ codeunit 50102 "Fedex - Create Label"
             Name := Format(CompanyInfo.Name);
         end;
         ShipperContact.Add('personName', CompanyInfo.Name);
+
+        if CompanyInfo."Phone No." = '' then
+            Error('Company Phone No. must not be empty. Company Information. Company Phone No.=%1.', CompanyInfo."Phone No.");
         PhoneNumber := CompanyInfo."Phone No.".Replace(' ', '');
         if StrLen(PhoneNumber) > 15 then begin
             PhoneNumber := Format(PhoneNumber, 15);
@@ -336,6 +356,8 @@ codeunit 50102 "Fedex - Create Label"
         PostCode: Text;
         ShipToContact: Text;
     begin
+        if SalesShipmentHeader."Ship-to Address" = '' then
+            Error('Ship-to Address must not be empty. Shipment Document=%1.', SalesShipmentHeader."No.");
         if StrLen(SalesShipmentHeader."Ship-to Address") > 35 then begin
             Address := Format(SalesShipmentHeader."Ship-to Address", 35);
         end else begin
@@ -344,6 +366,8 @@ codeunit 50102 "Fedex - Create Label"
         RecipientStreetLinesArray.Add(Address);
         RecipientAddressTokens.Add('streetLines', RecipientStreetLinesArray);
 
+        if SalesShipmentHeader."Ship-to City" = '' then
+            Error('Ship-to City must not be empty. Shipment Document=%1.', SalesShipmentHeader."No.");
         if StrLen(SalesShipmentHeader."Ship-to City") > 35 then begin
             City := Format(SalesShipmentHeader."Ship-to City", 35);
         end else begin
@@ -352,6 +376,8 @@ codeunit 50102 "Fedex - Create Label"
         RecipientAddressTokens.Add('city', City);
         RecipientAddressTokens.Add('countryCode', 'GB');
 
+        if SalesShipmentHeader."Ship-to Post Code" = '' then
+            Error('Ship-to Post Code must not be empty. Shipment Document=%1.', SalesShipmentHeader."No.");
         if StrLen(SalesShipmentHeader."Ship-to Post Code") > 35 then begin
             PostCode := Format(SalesShipmentHeader."Ship-to Post Code", 35);
         end else begin
@@ -436,6 +462,7 @@ codeunit 50102 "Fedex - Create Label"
         Selected: Integer;
         SplitList: List of [Text];
         EmailOptions: Text;
+        SelectedEmail: Text;
         Text000: Label 'Customer email for label';
     begin
         IsHandled := false;
@@ -449,7 +476,8 @@ codeunit 50102 "Fedex - Create Label"
         Selected := StrMenu(EmailOptions, 1, Text000);
         SplitList := Input.Split(';');
         OnAfterSplitEmailAddress(Input, EmailOptions, SplitList, Selected);
-        exit(SplitList.Get(Selected));
+        SelectedEmail := SplitList.Get(Selected).TrimEnd().TrimStart();
+        exit(SelectedEmail);
     end;
 
     local procedure GetShippingAgentServicesDescription(var SalesShipmentHeader: Record "Sales Shipment Header") ShippingAgentServDesc: Text
