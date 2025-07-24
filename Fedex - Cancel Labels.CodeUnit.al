@@ -63,13 +63,29 @@ codeunit 50107 "Fedex - Cancel Labels"
     var
         AccountNumberObj: JsonObject;
         ValueObject: JsonObject;
+        SalesHeader: Record "Sales Header";
     begin
         if FedexSetup.Find('-') then begin
+            if (FedexSetup.AccountNumber = '') or (StrLen(FedexSetup.AccountNumber) <> 9) then
+                Error('Invalid Account Number. Please check that your Account Number is 9 digits long and. Fedex Setup Table. Account Number=%1.', FedexSetup.AccountNumber);
             ValueObject.Add('value', FedexSetup.AccountNumber);
             CancelShipmentObject.Add('accountNumber', ValueObject);
             CancelShipmentObject.Add('emailShipment', false);
             CancelShipmentObject.Add('senderCountryCode', 'GB');
-            CancelShipmentObject.Add('trackingNumber', SalesShipmentHeader."Fedex Tracking No.");
+            SalesHeader.Reset();
+            SalesHeader.SetFilter("No.", SalesShipmentHeader."Order No.");
+            SalesHeader.FindSet();
+            if SalesShipmentHeader."Fedex Tracking No." <> '' then begin
+                CancelShipmentObject.Add('trackingNumber', SalesShipmentHeader."Fedex Tracking No.");
+            end else begin
+                if SalesHeader."Fedex Tracking No." <> '' then begin
+                    CancelShipmentObject.Add('trackingNumber', SalesHeader."Fedex Tracking No.");
+                end else begin
+                    Error('Unable to locate Tracking Number. Please check Fedex Portal. Customer Reference Number %1.', SalesHeader."No.");
+                end;
+            end;
+
+
         end;
         OnAfterSetRequestBody(SalesShipmentHeader, CancelShipmentObject);
         exit(CancelShipmentObject)
