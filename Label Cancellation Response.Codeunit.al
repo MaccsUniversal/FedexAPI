@@ -54,12 +54,18 @@ codeunit 50110 "Label Cancellation Response"
     var
         SalesOrderHeader: Record "Sales Header";
         OrderNo: Code[20];
+        ShipmentHeader: Record "Sales Shipment Header";
     begin
         OrderNo := SalesShipmentHeader."Order No.";
 
-        SalesShipmentHeader."Fedex Tracking No." := '';
-        SalesShipmentHeader."Label Status" := SalesShipmentHeader."Label Status"::Cancelled;
-        SalesShipmentHeader.Modify();
+        ShipmentHeader.Copy(SalesShipmentHeader);
+        ShipmentHeader.SetFilter("Order No.", OrderNo);
+        ShipmentHeader.FIndSet();
+        repeat
+            ShipmentHeader."Fedex Tracking No." := '';
+            ShipmentHeader."Label Status" := ShipmentHeader."Label Status"::Cancelled;
+            ShipmentHeader.Modify();
+        until ShipmentHeader.Next() <= 0;
 
         if SalesOrderHeader.Get(SalesOrderHeader."Document Type"::Order, OrderNo) then begin
             SalesOrderHeader."Fedex Tracking No." := '';

@@ -93,6 +93,7 @@ codeunit 50103 "Label Creation Response"
         TrackingNumber: Text;
         SalesOrderHeader: Record "Sales Header";
         OrderNo: Code[20];
+        ShipmentHeader: Record "Sales Shipment Header";
     begin
         if not HttpResponseMessage.IsSuccessStatusCode() then
             exit;
@@ -117,9 +118,16 @@ codeunit 50103 "Label Creation Response"
 
             OrderNo := SalesShipmentHeader."Order No.";
 
-            SalesShipmentHeader."Fedex Tracking No." := TrackingNumber;
-            SalesShipmentHeader."Label Status" := SalesShipmentHeader."Label Status"::Generated;
-            SalesShipmentHeader.Modify();
+            ShipmentHeader.Copy(SalesShipmentHeader);
+            ShipmentHeader.SetFilter("Order No.", OrderNo);
+            ShipmentHeader.FIndSet();
+            repeat
+                ShipmentHeader."Shipping Agent Code" := SalesShipmentHeader."Shipping Agent Code";
+                ShipmentHeader."Shipping Agent Service Code" := SalesShipmentHeader."Shipping Agent Service Code";
+                ShipmentHeader."Fedex Tracking No." := TrackingNumber;
+                ShipmentHeader."Label Status" := ShipmentHeader."Label Status"::Generated;
+                ShipmentHeader.Modify();
+            until ShipmentHeader.Next() <= 0;
 
             if SalesOrderHeader.Get(SalesOrderHeader."Document Type"::Order, OrderNo) then begin
                 SalesOrderHeader."Fedex Tracking No." := TrackingNumber;
