@@ -118,7 +118,7 @@ page 50100 "Fedex Setup Page"
                                     end;
                                 Rec.ImageType::PDF:
                                     begin
-                                        Rec.LabelStockType := Rec.LabelStockType::PAPER_4X6;
+                                        Rec.LabelStockType := Rec.LabelStockType::STOCK_4X6;
                                     end;
                                 Rec.ImageType::PNG:
                                     begin
