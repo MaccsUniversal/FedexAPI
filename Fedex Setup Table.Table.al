@@ -111,6 +111,22 @@ table 50100 "Fedex Setup"
             ToolTip = 'Enables access to Label Status and FedEx Tracking Number fields on Sales Order Card.';
             Editable = true;
         }
+
+        field(15; EnableEmailNotifications; Boolean)
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Email Notifications';
+            ToolTip = 'Send email notifications to your client regarding delivery progress';
+            Editable = true;
+        }
+
+        field(16; PersonalMessage; Text[120])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'Personal Message';
+            ToolTip = 'Send a personal message to your client';
+            Editable = true;
+        }
     }
 
     keys

@@ -139,6 +139,25 @@ page 50100 "Fedex Setup Page"
                         Enabled = true;
                     }
                 }
+
+                group("Email Notifications")
+                {
+                    Caption = 'Email Notifications';
+
+                    field(EnableEmailNotifications; Rec.EnableEmailNotifications)
+                    {
+                        Caption = 'Enable Email Notifications';
+                        ApplicationArea = All;
+                        Enabled = true;
+                    }
+
+                    field(PersonalMessage; Rec.PersonalMessage)
+                    {
+                        Caption = 'Personal Message';
+                        ApplicationArea = All;
+                        Enabled = Rec.EnableEmailNotifications;
+                    }
+                }
             }
         }
     }

@@ -133,6 +133,7 @@ codeunit 50102 "Fedex - Create Label"
         ShippingChargesPaymentsObj: JsonObject;
         ShippingChargesPaymentsTokens: JsonObject;
         LabelSpecificationObj: JsonObject;
+        EmailNotification: JsonObject;
         RequestedPackageLineItemsArray: JsonArray;
         RequestedPackageLineItemsObj: JsonObject;
         RequestedPackageLineItemsTokens: JsonObject;
@@ -196,6 +197,10 @@ codeunit 50102 "Fedex - Create Label"
         LabelSpecificationObj := GetLabelSpecificationObject();
         OnAfterGetLabelSpecificationObject(LabelSpecificationObj);
         RequestedShipmentTokens.Add('labelSpecification', LabelSpecificationObj);
+        if FedexEmailNotifications.ToggleNotifications(RecipientContactName, RecipientEmailAddress) then begin
+            EmailNotification := FedexEmailNotifications.GetEmailNotificationObject();
+            RequestedShipmentTokens.Add('emailNotificationDetail', EmailNotification);
+        end;
         RateRequestType.Add('NONE');
         RequestedShipmentTokens.Add('rateRequestType', RateRequestType);
         RequestedShipmentTokens.Add('totalPackageCount', TotalPackageCount);
@@ -351,10 +356,8 @@ codeunit 50102 "Fedex - Create Label"
         Address: Text;
         City: Text;
         PhoneNumber: Text;
-        EmailAddress: Text;
         CompanyName: Text;
         PostCode: Text;
-        ShipToContact: Text;
     begin
         if SalesShipmentHeader."Ship-to Address" = '' then
             Error('Ship-to Address must not be empty. Shipment Document=%1.', SalesShipmentHeader."No.");
@@ -393,13 +396,13 @@ codeunit 50102 "Fedex - Create Label"
         end;
         RecipientContactTokens.Add('companyName', CompanyName);
 
-        EmailAddress := SplitEmailAddress(SalesShipmentHeader."Sell-to E-Mail");
-        if StrLen(EmailAddress) > 80 then begin
-            EmailAddress := Format(EmailAddress, 80);
+        RecipientEmailAddress := SplitEmailAddress(SalesShipmentHeader."Sell-to E-Mail");
+        if StrLen(RecipientEmailAddress) > 80 then begin
+            RecipientEmailAddress := Format(RecipientEmailAddress, 80);
         end else begin
-            EmailAddress := Format(EmailAddress);
+            RecipientEmailAddress := Format(RecipientEmailAddress);
         end;
-        RecipientContactTokens.Add('emailAddress', EmailAddress);
+        RecipientContactTokens.Add('emailAddress', RecipientEmailAddress);
 
         If SalesShipmentHeader."Ship-to Phone No." = '' then begin
             PhoneNumber := GetPhoneNumber();
@@ -414,11 +417,11 @@ codeunit 50102 "Fedex - Create Label"
         RecipientContactTokens.Add('phoneNumber', PhoneNumber.Trim());
 
         if StrLen(SalesShipmentHeader."Ship-to Contact") > 35 then begin
-            ShipToContact := Format(SalesShipmentHeader."Ship-to Contact", 35);
+            RecipientContactName := Format(SalesShipmentHeader."Ship-to Contact", 35);
         end else begin
-            ShipToContact := Format(SalesShipmentHeader."Ship-to Contact");
+            RecipientContactName := Format(SalesShipmentHeader."Ship-to Contact");
         end;
-        RecipientContactTokens.Add('personName', ShipToContact);
+        RecipientContactTokens.Add('personName', RecipientContactName);
         RecipientDetailsAddressObj.Add('contact', RecipientContactTokens);
         RecipientObj.Add(RecipientDetailsAddressObj);
         exit(RecipientObj);
@@ -568,9 +571,12 @@ codeunit 50102 "Fedex - Create Label"
         Response: HttpResponseMessage;
         Body: JsonObject;
         Payload: Text;
+        RecipientEmailAddress: Text;
+        RecipientContactName: Text;
         FedexSetup: Record "Fedex Setup";
         LabelCreationResponse: Codeunit "Label Creation Response";
         FedexHttpErrorHandler: Codeunit "Fedex Http Error Handler";
+        FedexEmailNotifications: Codeunit "Fedex Email Notifications";
         TotalWeight: Decimal;
         SalesShipmentLine: Record "Sales Shipment Line";
         IsHandled: Boolean;
