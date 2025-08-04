@@ -23,6 +23,7 @@ codeunit 50110 "Label Cancellation Response"
         MessageToken: JsonToken;
         MessageValue: JsonValue;
         MessageAsText: Text;
+        CancelledShipment: Boolean;
     begin
         IsHandled := false;
         OnBeforeCancelResponseHandler(ResponseData, IsHandled);
@@ -31,6 +32,9 @@ codeunit 50110 "Label Cancellation Response"
         ResponseData.Content.ReadAs(ResponseAsText);
         ResponseObj.ReadFrom(ResponseAsText);
         ResponseObj.Get('output', OutputToken);
+        CancelledShipment := OutputToken.AsObject().GetBoolean('cancelledShipment');
+        if not CancelledShipment then
+            Error(OutputToken.AsObject().GetText('message'));
         OutputObj := OutputToken.AsObject();
         OutputObj.Get('alerts', AlertsArray);
         Array := AlertsArray.AsArray();

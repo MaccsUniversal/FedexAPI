@@ -30,6 +30,8 @@ codeunit 50103 "Label Creation Response"
         transactionShipments0: JsonToken;
         PackageDocuments: JsonToken;
         PackageDocumentsToken: JsonToken;
+        AlertsArray: JsonToken;
+        AlertsText: Text;
     begin
         OnBeforeCreationResponseHandler(ResponseData, IsHandled, ArrayToken);
         if IsHandled then
@@ -37,6 +39,10 @@ codeunit 50103 "Label Creation Response"
         ResponseData.Content.ReadAs(ResponseObjectAsText);
         ResponseObj.ReadFrom(ResponseObjectAsText);
         ResponseObj.Get('output', OutputToken);
+        if OutputToken.AsObject().Get('alerts', AlertsArray) then
+            AlertsText := AlertsArray.AsArray().GetText(1);
+        if AlertsText = 'WARNING' then
+            Error(AlertsArray.AsArray.GetText(2));
         OutputToken.AsObject().Get('transactionShipments', transactionShipmentsToken);
         transactionShipmentsToken.AsArray().Get(0, transactionShipments0);
         transactionShipments0.AsObject().Get('pieceResponses', ArrayToken);

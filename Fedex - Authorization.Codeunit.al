@@ -60,7 +60,7 @@ codeunit 50100 "Fedex Authorization"
         if not Sent then
             IsSuccessful := HttpClient.Post('/oauth/token', Content, Response);
         OnAfterHttpClientCall(IsSuccessful);
-        if Response.HttpStatusCode <> 200 then
+        if IsSuccessful then
             ErrorResponseMessage(Response.HttpStatusCode);
 
         ResponseHandler(Response);
