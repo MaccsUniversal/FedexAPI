@@ -197,7 +197,7 @@ codeunit 50102 "Fedex - Create Label"
         LabelSpecificationObj := GetLabelSpecificationObject();
         OnAfterGetLabelSpecificationObject(LabelSpecificationObj);
         RequestedShipmentTokens.Add('labelSpecification', LabelSpecificationObj);
-        if FedexEmailNotifications.ToggleNotifications(RecipientContactName, RecipientEmailAddress) then begin
+        if FedexEmailNotifications.ToggleNotifications(RecipientContactName, 'moses@e-2go.net') then begin
             EmailNotification := FedexEmailNotifications.GetEmailNotificationObject();
             RequestedShipmentTokens.Add('emailNotificationDetail', EmailNotification);
         end;

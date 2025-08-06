@@ -35,22 +35,8 @@ codeunit 50110 "Label Cancellation Response"
         CancelledShipment := OutputToken.AsObject().GetBoolean('cancelledShipment');
         if not CancelledShipment then
             Error(OutputToken.AsObject().GetText('message'));
+        ShowMessage(OutputToken.AsObject().GetText('message'));
         OutputObj := OutputToken.AsObject();
-        OutputObj.Get('alerts', AlertsArray);
-        Array := AlertsArray.AsArray();
-        Array.Get(0, ArrayToken);
-        ArrayObj := ArrayToken.AsObject();
-        ArrayObj.Get('message', MessageToken);
-        MessageValue := MessageToken.AsValue();
-        MessageValue.WriteTo(MessageAsText);
-        MessageAsText := MessageAsText.Replace('"', '');
-        OutputObj.Get('cancelledShipment', CancelledShipmentToken);
-        CancelledShipmentValue := CancelledShipmentToken.AsValue();
-        CancelledShipmentValue.WriteTo(CancelledShipmentAsText);
-        CancelledShipmentAsText := CancelledShipmentAsText.Replace('"', '');
-
-        OnAfterCancelResponseHandler(CancelledShipmentAsText, MessageAsText);
-        ShowMessage(CancelledShipmentAsText, MessageAsText);
         RemoveTrackingNumber();
     end;
 
@@ -78,26 +64,17 @@ codeunit 50110 "Label Cancellation Response"
         end;
     end;
 
-    local procedure ShowMessage(CancelledText: Text; MessageText: Text)
+    local procedure ShowMessage(MessageText: Text)
     begin
         if HideDialog then
             exit;
 
-        MessageToShow(CancelledText, MessageText);
+        MessageToShow(MessageText);
     end;
 
-    local procedure MessageToShow(Cancelled: Text; Msg: Text)
+    local procedure MessageToShow(Msg: Text)
     begin
-        case Cancelled of
-            'true':
-                begin
-                    Message(Msg);
-                end;
-            'false':
-                begin
-                    Error(Msg);
-                end;
-        end;
+        Message(Msg);
     end;
 
 
