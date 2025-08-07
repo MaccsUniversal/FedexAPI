@@ -1,4 +1,4 @@
-pageextension 99011 "Fedex - Sales Order" extends "Sales Order"
+pageextension 99013 "Fedex - Sales Order" extends "Sales Order"
 {
     layout
     {
