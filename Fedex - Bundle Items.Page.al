@@ -6,6 +6,7 @@ page 99012 "Fedex - Bundle Items"
     SourceTable = "Fedex Bundle Items";
     DelayedInsert = true;
     Caption = 'Fedex Bundle Items';
+    Permissions = tabledata "Fedex Bundle Items" = RIMD;
 
     layout
     {

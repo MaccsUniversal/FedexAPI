@@ -2,13 +2,13 @@ tableextension 99012 "Fedex - Sales Shipment Header" extends "Sales Shipment Hea
 {
     fields
     {
-        field(1000; "Fedex Tracking No."; Text[100])
+        field(50000; "Fedex Tracking No."; Text[100])
         {
             DataClassification = ToBeClassified;
             Caption = 'Fedex Tarcking No.';
         }
 
-        field(1001; "Label Status"; Enum "Fedex Label Status")
+        field(50001; "Label Status"; Enum "Fedex Label Status")
         {
             DataClassification = ToBeClassified;
             Caption = 'Fedex Label Status';

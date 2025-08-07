@@ -2,6 +2,8 @@ table 99010 "Fedex Bundle Items"
 {
     DataClassification = ToBeClassified;
     Caption = 'Bundle Items';
+    Permissions = tabledata Item = R;
+
 
     fields
     {
