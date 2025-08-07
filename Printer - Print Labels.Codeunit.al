@@ -1,4 +1,4 @@
-codeunit 50105 "Printer - Print Labels"
+codeunit 99021 "Printer - Print Labels"
 {
     trigger OnRun()
     begin

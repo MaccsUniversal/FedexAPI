@@ -1,4 +1,4 @@
-codeunit 50112 "Fedex Email Notifications"
+codeunit 99014 "Fedex Email Notifications"
 {
     procedure ToggleNotifications(ContactName: Text; EmailAddress: Text) Enabled: Boolean;
     begin

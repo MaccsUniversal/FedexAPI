@@ -1,4 +1,4 @@
-table 50100 "Fedex Setup"
+table 99013 "Fedex Setup"
 {
     DataClassification = CustomerContent;
     Caption = 'Fedex Setup';

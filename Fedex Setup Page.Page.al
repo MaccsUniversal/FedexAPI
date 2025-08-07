@@ -1,4 +1,4 @@
-page 50100 "Fedex Setup Page"
+page 99016 "Fedex Setup Page"
 {
     PageType = Card;
     ApplicationArea = All;

@@ -1,4 +1,4 @@
-codeunit 50109 "Fedex Http Error Handler"
+codeunit 99015 "Fedex Http Error Handler"
 {
     procedure HandleHttpError(HttpResponseMessage: HttpResponseMessage)
     var

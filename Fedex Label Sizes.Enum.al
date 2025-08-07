@@ -1,4 +1,4 @@
-enum 50103 "Fedex Label Sizes"
+enum 99003 "Fedex Label Sizes"
 {
     Extensible = true;
 

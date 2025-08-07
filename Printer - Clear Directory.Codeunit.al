@@ -1,4 +1,4 @@
-codeunit 50108 "Printer - Clear Directory"
+codeunit 99019 "Printer - Clear Directory"
 {
     trigger OnRun()
     begin

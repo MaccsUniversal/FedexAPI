@@ -1,4 +1,4 @@
-enum 50102 "Fedex PickUp Types"
+enum 99005 "Fedex PickUp Types"
 {
     Extensible = true;
 

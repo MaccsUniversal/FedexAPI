@@ -1,4 +1,4 @@
-codeunit 50111 "Fedex Bundle Items"
+codeunit 99011 "Fedex Bundle Items"
 {
     [EventSubscriber(ObjectType::Table, Database::"Fedex Bundle Items", OnBeforeInsertEvent, '', true, true)]
     local procedure OnBeforeInsertItem(var Rec: Record "Fedex Bundle Items")

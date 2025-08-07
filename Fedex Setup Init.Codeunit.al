@@ -1,4 +1,4 @@
-codeunit 50101 "Fedex Setup Init"
+codeunit 99016 "Fedex Setup Init"
 {
     procedure Init()
     var

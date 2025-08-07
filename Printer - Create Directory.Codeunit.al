@@ -1,4 +1,4 @@
-codeunit 50106 "Printer - Create Directory"
+codeunit 99020 "Printer - Create Directory"
 {
     trigger OnRun()
     begin

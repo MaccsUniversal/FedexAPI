@@ -1,4 +1,4 @@
-pageextension 50102 "Fedex - Sales Shpt - Update" extends "Posted Sales Shipment - Update"
+pageextension 99014 "Fedex - Sales Shpt - Update" extends "Posted Sales Shipment - Update"
 {
     layout
     {

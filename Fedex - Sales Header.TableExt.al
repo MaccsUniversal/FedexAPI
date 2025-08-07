@@ -1,4 +1,4 @@
-tableextension 50102 "Fedex - Sales Header" extends "Sales Header"
+tableextension 99011 "Fedex - Sales Header" extends "Sales Header"
 {
     fields
     {

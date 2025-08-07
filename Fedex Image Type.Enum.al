@@ -1,4 +1,4 @@
-enum 50104 "Fedex Image Types"
+enum 99002 "Fedex Image Types"
 {
     Extensible = true;
 

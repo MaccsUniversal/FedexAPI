@@ -1,4 +1,4 @@
-codeunit 50107 "Fedex - Cancel Labels"
+codeunit 99012 "Fedex - Cancel Labels"
 {
     TableNo = "Sales Shipment Header";
     Permissions = tabledata "Sales Shipment Header" = M;

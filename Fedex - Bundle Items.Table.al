@@ -1,4 +1,4 @@
-table 50103 "Fedex Bundle Items"
+table 99010 "Fedex Bundle Items"
 {
     DataClassification = ToBeClassified;
     Caption = 'Bundle Items';

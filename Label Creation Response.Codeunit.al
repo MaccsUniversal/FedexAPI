@@ -1,4 +1,4 @@
-codeunit 50103 "Label Creation Response"
+codeunit 99018 "Label Creation Response"
 {
     Permissions = tabledata "Sales Shipment Header" = M;
     trigger OnRun()

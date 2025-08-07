@@ -1,4 +1,4 @@
-enum 50100 "Fedex Grant Types"
+enum 99001 "Fedex Grant Types"
 {
     Extensible = true;
 
